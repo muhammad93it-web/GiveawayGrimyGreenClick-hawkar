@@ -140,3 +140,17 @@ mtime_ms = 1787438477965
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/53f7557c-7248-46ba-9e2e-769e4422f746/499c8531-f1aa-4e34-88cd-1f15cc797cd0"
 storage_version_token = "1787438487162512"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "_Vlqlf7lJJlA0L-zuQDqV"
+uri = "file://.agents/outputs/meta-step-10-customize-facebook-page-marked.jpg"
+type = "image"
+title = "هەنگاوی دەیەم — ڕێکخستنی پەیجی فەیسبووک"
+description = "کرتە لە ڕیزی دووەم بکە تا ڕێکخستنەکانی پەیجەکە بکەینەوە."
+logical_id = "ca8d5046-9df3-4b3f-910c-a1e2f40d5287"
+content_hash = "sha256:39ec7df0b0dcd80957e368ea3b6e4d12f4e56183f7da0c2fd742d1a9ff2b6a34"
+size = 101929
+mtime_ms = 1787438616929
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/ca8d5046-9df3-4b3f-910c-a1e2f40d5287/4ce939f6-467c-4b9f-bf6b-52806457f1af"
+storage_version_token = "1787438625573477"
+content_type = "image/jpeg"
