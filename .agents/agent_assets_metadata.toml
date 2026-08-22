@@ -56,3 +56,17 @@ mtime_ms = 1787437900698
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/f6396717-f5b9-47d0-8318-96687bde323d/f69cadaf-f617-48f4-9d0a-061d28bfde2f"
 storage_version_token = "1787437909037482"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "DnxJgqvc6IZrjmKGW-1F1"
+uri = "file://.agents/outputs/meta-step-4-requirements-next-marked.jpg"
+type = "image"
+title = "هەنگاوی چوارەم — بەردەوام بە Next"
+description = "هیچ خانەیەک پڕ مەکە؛ تەنها کرتە لە Next بکە."
+logical_id = "623dab04-933f-4660-93b9-3c9347c1a163"
+content_hash = "sha256:da5e95e907c4d33cd290c51e3e93f6e5066e641e3a4af3659dd2939da214266c"
+size = 52079
+mtime_ms = 1787437977842
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/623dab04-933f-4660-93b9-3c9347c1a163/33ff737e-6c40-407f-97f8-178a08f3529c"
+storage_version_token = "1787437985578969"
+content_type = "image/jpeg"
