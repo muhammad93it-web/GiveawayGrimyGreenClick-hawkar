@@ -42,3 +42,17 @@ mtime_ms = 1787437807097
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/793007e5-b922-449e-a3c7-f82609919d14/b08ee682-9eac-4731-a546-377b88260c83"
 storage_version_token = "1787437814983893"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "luxiIeIeVpZcDRNR__a8a"
+uri = "file://.agents/outputs/meta-step-3-business-portfolio-marked.jpg"
+type = "image"
+title = "هەنگاوی سێیەم — هەڵبژاردنی پۆرتفۆلیۆ"
+description = "ئەگەر ئەم پۆرتفۆلیۆیە هی تۆیە، هەڵیبژێرە و پاشان Next بکە."
+logical_id = "f6396717-f5b9-47d0-8318-96687bde323d"
+content_hash = "sha256:ed5b5e36fe60aa15290bb9d6418528bf842dc3b64c70b77130f5ec3dc9ae51ca"
+size = 170722
+mtime_ms = 1787437900698
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/f6396717-f5b9-47d0-8318-96687bde323d/f69cadaf-f617-48f4-9d0a-061d28bfde2f"
+storage_version_token = "1787437909037482"
+content_type = "image/jpeg"
