@@ -154,3 +154,17 @@ mtime_ms = 1787438616929
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/ca8d5046-9df3-4b3f-910c-a1e2f40d5287/4ce939f6-467c-4b9f-bf6b-52806457f1af"
 storage_version_token = "1787438625573477"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "R7QpUUC-d0k64b3dtrQis"
+uri = "file://.agents/outputs/meta-step-11-pages-manage-engagement-add-marked.jpg"
+type = "image"
+title = "هەنگاوی یانزەیەم — ڕێگەپێدانی کۆمێنت"
+description = "کرتە لە Add ـی ڕیزی pages_manage_engagement بکە؛ هیچ Add ـێکی تر مەکە."
+logical_id = "03a62dc1-d53b-493d-9c12-1a25d0ed123c"
+content_hash = "sha256:dccac47f00f3d59107c3f2ad3c8504c2c5bda80b93c015e46b506d709d9b4b01"
+size = 69620
+mtime_ms = 1787438793597
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/03a62dc1-d53b-493d-9c12-1a25d0ed123c/0f3a4f51-56e5-4342-b6d5-3df83a7ca11f"
+storage_version_token = "1787438804357693"
+content_type = "image/jpeg"
