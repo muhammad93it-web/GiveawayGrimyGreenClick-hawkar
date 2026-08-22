@@ -280,3 +280,17 @@ mtime_ms = 1787440433717
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/eb309c48-c534-42c8-9d84-f845c057dc25/f54940ff-76c6-4317-8cdc-fc1b340427e9"
 storage_version_token = "1787440455088390"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "2mJSHFqzHR4QcwYsp3q5x"
+uri = "file://.agents/outputs/meta-step-19-return-facebook-login-setup-marked.jpg"
+type = "image"
+title = "هەنگاوی نۆزدەیەم — ڕێکخستنی Facebook Login"
+description = "کرتە لە API setup with Facebook login بکە؛ هیچ Add ـێکی تر مەکە."
+logical_id = "bcf4636d-1522-43d7-b5b7-d75a9015aa8c"
+content_hash = "sha256:6a1aedaaff979c24757beb3bbaf2d2834ecda26a68217cbac44cef323c4b0717"
+size = 105033
+mtime_ms = 1787440695040
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/bcf4636d-1522-43d7-b5b7-d75a9015aa8c/6373d3ef-64ba-46b2-84f4-72ab7a099d6c"
+storage_version_token = "1787440705021851"
+content_type = "image/jpeg"
