@@ -196,3 +196,17 @@ mtime_ms = 1787439133265
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/ab9d69d1-2d80-4500-98a2-632792986043/5ab161a2-c379-4e93-a758-47eee862a66e"
 storage_version_token = "1787439142433722"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "EcdvNfK2kaea98LYAVo2C"
+uri = "file://.agents/outputs/meta-step-14-customize-instagram-marked.jpg"
+type = "image"
+title = "هەنگاوی چواردەیەم — ڕێکخستنی ئینستاگرام"
+description = "کرتە لە ڕیزی یەکەم بکە تا ڕێگەپێدانەکانی ئینستاگرام ببینین."
+logical_id = "384bffbd-5c63-4984-bb8c-25fde9810b03"
+content_hash = "sha256:4c22b1be452149216ddfdfa5d475af78886ce787eed21c1b71aaf045f6c69e3c"
+size = 84217
+mtime_ms = 1787439225673
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/384bffbd-5c63-4984-bb8c-25fde9810b03/99fad320-c056-4635-87f7-6f3126117d5e"
+storage_version_token = "1787439234623355"
+content_type = "image/jpeg"
