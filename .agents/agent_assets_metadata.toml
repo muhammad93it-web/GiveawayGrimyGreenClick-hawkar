@@ -168,3 +168,17 @@ mtime_ms = 1787438793597
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/03a62dc1-d53b-493d-9c12-1a25d0ed123c/0f3a4f51-56e5-4342-b6d5-3df83a7ca11f"
 storage_version_token = "1787438804357693"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "Lguk3C7VhCvXsPIZML02d"
+uri = "file://.agents/outputs/meta-step-12-two-read-permissions-marked.jpg"
+type = "image"
+title = "هەنگاوی دوازدەیەم — خوێندنەوەی کۆمێنتەکان"
+description = "Add ـی pages_read_engagement و pages_read_user_content بکە؛ هیچ مۆڵەتێکی تر زیاد مەکە."
+logical_id = "19df4701-f3be-4f56-9bfe-ee899b487907"
+content_hash = "sha256:082cb2b38164dcf60a9c1e80a2d40926602eabf5b7eb07481061d4b78105559e"
+size = 74772
+mtime_ms = 1787438968549
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/19df4701-f3be-4f56-9bfe-ee899b487907/6c00f0c4-78bd-49f4-8200-5aa8d7f53e1a"
+storage_version_token = "1787438983193618"
+content_type = "image/jpeg"
