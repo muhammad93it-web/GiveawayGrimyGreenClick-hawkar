@@ -98,3 +98,17 @@ mtime_ms = 1787438199549
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/40b66be1-2e09-426e-8a9a-20699326c208/fe99aec2-91c2-4c83-9304-2f7cff88260f"
 storage_version_token = "1787438208872251"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "DwTiOYtXfgxCJOT2LevA7"
+uri = "file://.agents/outputs/meta-step-7-other-use-cases-filter-marked.jpg"
+type = "image"
+title = "هەنگاوی حەوتەم — پیشاندانی هەڵبژاردەکانی پەیج"
+description = "تەنها کرتە لە Other (4) بکە؛ هیچ کارتەیەک هەڵمەبژێرە."
+logical_id = "b01cb127-7bc4-45cc-abde-cca9beb3919c"
+content_hash = "sha256:b95a5fe1033135fa59e645bc09457c8a7482de9895a98cc5ab613415b63bff78"
+size = 126829
+mtime_ms = 1787438290729
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/b01cb127-7bc4-45cc-abde-cca9beb3919c/739094f9-2d36-4ae3-98a7-c9852283c1e3"
+storage_version_token = "1787438299389302"
+content_type = "image/jpeg"
