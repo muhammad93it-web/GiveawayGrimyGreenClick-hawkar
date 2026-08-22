@@ -14,3 +14,17 @@ mtime_ms = 1787437047142
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/fd99ccc0-991a-4e1c-9e2f-e74bbff783ec/1b451020-f453-4992-becc-7fccbb527787"
 storage_version_token = "1787437066098142"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "2AScCkaAdXioFKW1WHn-h"
+uri = "file://.agents/outputs/meta-step-1-other-filter-marked.jpg"
+type = "image"
+title = "هەنگاوی یەکەم — کرتە لە Other (5)"
+description = "تەنها کرتە لە بازنە بچووکە دیارکراوەکە بکە، نەک لە هەڵبژاردەکانی Ads یان WhatsApp."
+logical_id = "eedefd72-5f9f-4589-84b8-a7a30558f930"
+content_hash = "sha256:027cd8b10139c97da767902cf321b42ec4c0ef548f4b2e7cf6d11afc61926a49"
+size = 98901
+mtime_ms = 1787437703649
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/eedefd72-5f9f-4589-84b8-a7a30558f930/b11ee1a4-04c7-4ac3-8f32-3c7d35f20441"
+storage_version_token = "1787437711606304"
+content_type = "image/jpeg"
