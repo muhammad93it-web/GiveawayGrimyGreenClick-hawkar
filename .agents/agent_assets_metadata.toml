@@ -266,3 +266,17 @@ mtime_ms = 1787440256585
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/61356dee-d3e3-49e1-b932-71ffdd420aba/638884ef-cc78-4d81-9a6b-8d36f58e502c"
 storage_version_token = "1787440273692661"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "H1y3-17Fe12nRRtuMIiRP"
+uri = "file://.agents/outputs/meta-step-18-precise-instagram-permissions-marked.jpg"
+type = "image"
+title = "هەنگاوی هەژدەیەم — مۆڵەتە تایبەتەکانی کۆمێنت"
+description = "دوگمە شینەکان مەکە؛ کرتە لە Permissions and features بکە تا تەنها مۆڵەتە پێویستەکان زیاد بکەین."
+logical_id = "eb309c48-c534-42c8-9d84-f845c057dc25"
+content_hash = "sha256:e90fd4328398f6c1f651cdcfc00c6f785dbae5827ea6b6003a91accd04309b4c"
+size = 94423
+mtime_ms = 1787440433717
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/eb309c48-c534-42c8-9d84-f845c057dc25/f54940ff-76c6-4317-8cdc-fc1b340427e9"
+storage_version_token = "1787440455088390"
+content_type = "image/jpeg"
