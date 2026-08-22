@@ -210,3 +210,17 @@ mtime_ms = 1787439225673
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/384bffbd-5c63-4984-bb8c-25fde9810b03/99fad320-c056-4635-87f7-6f3126117d5e"
 storage_version_token = "1787439234623355"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "ekHR5XAW30iiAsBL7jzZ1"
+uri = "file://.agents/outputs/meta-step-15-add-instagram-permissions-marked.jpg"
+type = "image"
+title = "هەنگاوی پانزدەیەم — ڕێگەپێدانەکانی ئینستاگرام"
+description = "کرتە لە Add all required permissions بکە؛ webhook و token ـەکان بۆ ئێستا بەجێبهێڵە."
+logical_id = "cf21b4e0-12e8-4de1-8d80-0ec05a956b5a"
+content_hash = "sha256:a498c7afe6b2cae3c86033ac46e1f9e275053640c624bd2e32d5cd7a0cbf273a"
+size = 77931
+mtime_ms = 1787439350941
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/cf21b4e0-12e8-4de1-8d80-0ec05a956b5a/e176e65e-369f-499d-96b6-1f535b9a7d72"
+storage_version_token = "1787439360460830"
+content_type = "image/jpeg"
