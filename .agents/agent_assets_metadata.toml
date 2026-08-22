@@ -28,3 +28,17 @@ mtime_ms = 1787437703649
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/eedefd72-5f9f-4589-84b8-a7a30558f930/b11ee1a4-04c7-4ac3-8f32-3c7d35f20441"
 storage_version_token = "1787437711606304"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "FspRGSGk0sbhx2lGqLoxI"
+uri = "file://.agents/outputs/meta-step-2-create-without-use-case-marked.jpg"
+type = "image"
+title = "هەنگاوی دووەم — ئەپێک بەبێ use case"
+description = "کرتە لە چوارگۆشەی دیارکراوەکە بکە، پاشان Next بکە."
+logical_id = "793007e5-b922-449e-a3c7-f82609919d14"
+content_hash = "sha256:d3fc459e971b3abbeeb0889e2402c619a109a5be0ef8a3980613f214a0d7deea"
+size = 147416
+mtime_ms = 1787437807097
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/793007e5-b922-449e-a3c7-f82609919d14/b08ee682-9eac-4731-a546-377b88260c83"
+storage_version_token = "1787437814983893"
+content_type = "image/jpeg"
