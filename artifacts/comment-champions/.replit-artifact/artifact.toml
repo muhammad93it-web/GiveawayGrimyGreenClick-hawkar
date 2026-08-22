@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "گیادەرمانی سروشتی ڕانیە"
+description = "ئامرازێکی ڕاستەوخۆ بۆ ڕیزبەندی کۆمێنتەکانی پۆستەکانی فەیسبووک و ئینستاگرام، دیاریکردنی براوەکان و پیشاندانی جوانی ئەنجامەکان."
+version = "1.0.0"
+id = "artifacts/comment-champions"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23252
+
+[services.development]
+run = "pnpm --filter @workspace/comment-champions run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/comment-champions", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/comment-champions/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23252"
+BASE_PATH = "/"
