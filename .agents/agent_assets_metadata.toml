@@ -238,3 +238,31 @@ mtime_ms = 1787439494541
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/3311ff1e-69ed-4c04-b22f-2bf133fdb56a/3a112d56-718b-431c-94bd-19d399fa2328"
 storage_version_token = "1787439504826261"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "hx5bV_He2DKEpmkrRGlNi"
+uri = "file://.agents/outputs/meta-step-17a-back-from-instagram-error-marked.jpg"
+type = "image"
+title = "یەکەم — گەڕانەوە لە هەڵەکە"
+description = "کرتە لە تیرەی گەڕانەوەی براوزەر بکە."
+logical_id = "42202b93-3fd6-44d6-9bd1-07c80033cec4"
+content_hash = "sha256:798d3fcc308b1bc4ff19259344e89e1c4fe4ece392809c82ce123b46b910f695"
+size = 38126
+mtime_ms = 1787440254641
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/42202b93-3fd6-44d6-9bd1-07c80033cec4/e5205e18-3a8f-4279-8974-1ae469a98681"
+storage_version_token = "1787440272316415"
+content_type = "image/jpeg"
+
+[[outputs]]
+id = "uxpb52NLRY5c77caWNsU9"
+uri = "file://.agents/outputs/meta-step-17b-facebook-login-route-marked.jpg"
+type = "image"
+title = "دووەم — ڕێگای دروستی Facebook Login"
+description = "لە پەڕەی Meta کرتە لە API setup with Facebook login بکە."
+logical_id = "61356dee-d3e3-49e1-b932-71ffdd420aba"
+content_hash = "sha256:f22881c6ddcfefcbb9532e24331cf408571ccd943b56f2b7f182468a0698f04b"
+size = 149365
+mtime_ms = 1787440256585
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/61356dee-d3e3-49e1-b932-71ffdd420aba/638884ef-cc78-4d81-9a6b-8d36f58e502c"
+storage_version_token = "1787440273692661"
+content_type = "image/jpeg"
