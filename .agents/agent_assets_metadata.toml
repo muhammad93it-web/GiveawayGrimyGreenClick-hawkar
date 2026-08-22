@@ -126,3 +126,17 @@ mtime_ms = 1787438390561
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/84987acb-6673-485e-8f88-2956ac93efad/78b77dd1-3c6b-4ab6-8797-c560d33fb96e"
 storage_version_token = "1787438398652784"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "ssAItzbR9IbDwC2W-Xj_J"
+uri = "file://.agents/outputs/meta-step-9-facebook-instagram-use-cases-marked.jpg"
+type = "image"
+title = "هەنگاوی نۆیەم — فەیسبووک و ئینستاگرام"
+description = "تەنها ئەو دوو چوارگۆشەیە هەڵبژێرە، پاشان Save بکە."
+logical_id = "53f7557c-7248-46ba-9e2e-769e4422f746"
+content_hash = "sha256:37d4132e9fbbce966a9f12745348b653935875988e1fa2747f1febd4eef39435"
+size = 141001
+mtime_ms = 1787438477965
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/53f7557c-7248-46ba-9e2e-769e4422f746/499c8531-f1aa-4e34-88cd-1f15cc797cd0"
+storage_version_token = "1787438487162512"
+content_type = "image/jpeg"
