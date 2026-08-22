@@ -84,3 +84,17 @@ mtime_ms = 1787438060834
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/67c1c9f5-3e67-4b15-9e85-d53dc1976ae7/c81a79d1-f4c9-45b1-a5cf-894e409e1ac5"
 storage_version_token = "1787438068502974"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "GUg3dSr9WozvRMNFOBPLs"
+uri = "file://.agents/outputs/meta-step-6-add-use-cases-marked.jpg"
+type = "image"
+title = "هەنگاوی شەشەم — زیادکردنی Use Case"
+description = "کرتە لە دوگمەی سەوزی Add use cases بکە، پاشان وێنەی پەڕەی دواتر بنێرە."
+logical_id = "40b66be1-2e09-426e-8a9a-20699326c208"
+content_hash = "sha256:cb2c68d222a14ddd27af72d920615be6109d57ef112812fa418504ee5783080a"
+size = 44894
+mtime_ms = 1787438199549
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/40b66be1-2e09-426e-8a9a-20699326c208/fe99aec2-91c2-4c83-9304-2f7cff88260f"
+storage_version_token = "1787438208872251"
+content_type = "image/jpeg"
