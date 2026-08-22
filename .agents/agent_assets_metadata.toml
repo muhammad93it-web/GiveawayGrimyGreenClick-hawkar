@@ -112,3 +112,17 @@ mtime_ms = 1787438290729
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/b01cb127-7bc4-45cc-abde-cca9beb3919c/739094f9-2d36-4ae3-98a7-c9852283c1e3"
 storage_version_token = "1787438299389302"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "8zvgB_TNytqgnSila_9Ns"
+uri = "file://.agents/outputs/meta-step-8-content-management-filter-marked.jpg"
+type = "image"
+title = "هەنگاوی هەشتەم — فلتەری دروستی پەیج"
+description = "تەنها کرتە لە Content management (5) بکە؛ هیچ کارتەیەک لێرە هەڵمەبژێرە."
+logical_id = "84987acb-6673-485e-8f88-2956ac93efad"
+content_hash = "sha256:705228dd7861c04d6b316f7b9463cc6da47a258fbc40454b24b4f2d333d5cfef"
+size = 66680
+mtime_ms = 1787438390561
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/84987acb-6673-485e-8f88-2956ac93efad/78b77dd1-3c6b-4ab6-8797-c560d33fb96e"
+storage_version_token = "1787438398652784"
+content_type = "image/jpeg"
