@@ -224,3 +224,17 @@ mtime_ms = 1787439350941
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/cf21b4e0-12e8-4de1-8d80-0ec05a956b5a/e176e65e-369f-499d-96b6-1f535b9a7d72"
 storage_version_token = "1787439360460830"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "d79HIns9b8DwoUoAZk2SV"
+uri = "file://.agents/outputs/meta-step-16-add-instagram-account-marked.jpg"
+type = "image"
+title = "هەنگاوی شانزدەیەم — پەیوەستکردنی ئینستاگرام"
+description = "کرتە لە Add account بکە؛ ئەگەر token پیشان درا، هیچ وێنەیەکی مەینێرە و دوگمەی Show مەکە."
+logical_id = "3311ff1e-69ed-4c04-b22f-2bf133fdb56a"
+content_hash = "sha256:b3a8d9a9db601ae555b77066928eb27f0f7f6937e1cb018a93bf88c642b9db9b"
+size = 142576
+mtime_ms = 1787439494541
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/3311ff1e-69ed-4c04-b22f-2bf133fdb56a/3a112d56-718b-431c-94bd-19d399fa2328"
+storage_version_token = "1787439504826261"
+content_type = "image/jpeg"
