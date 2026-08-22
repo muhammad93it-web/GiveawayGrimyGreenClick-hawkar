@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "qc4-h8-K7B3FDoQGZ24g8"
+uri = "file://.agents/outputs/gyadarmany-srushti-ranya-source.zip"
+type = "unspecified"
+title = "کۆدی پڕۆژەی گیادەرمانی سروشتی ڕانیە"
+description = "کۆدی سەرچاوە، لۆگۆ، و ڕێبەری کوردی بۆ ڕاکردنی پڕۆژە لەسەر کۆمپیوتەر و دروستکردنی Meta App."
+logical_id = "fd99ccc0-991a-4e1c-9e2f-e74bbff783ec"
+content_hash = "sha256:8d01796338a74af694d15f3ce713c99e4d569ecd15696372250dd91ebfb81ebb"
+size = 2021366
+mtime_ms = 1787437047142
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/fd99ccc0-991a-4e1c-9e2f-e74bbff783ec/1b451020-f453-4992-becc-7fccbb527787"
+storage_version_token = "1787437066098142"
+content_type = "application/octet-stream"
