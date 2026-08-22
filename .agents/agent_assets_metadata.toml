@@ -182,3 +182,17 @@ mtime_ms = 1787438968549
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/19df4701-f3be-4f56-9bfe-ee899b487907/6c00f0c4-78bd-49f4-8200-5aa8d7f53e1a"
 storage_version_token = "1787438983193618"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "MDTsqhWzBpbUK7n5m9CNo"
+uri = "file://.agents/outputs/meta-step-13-return-dashboard-marked.jpg"
+type = "image"
+title = "هەنگاوی سێزدەیەم — گەڕانەوە بۆ داشبۆرد"
+description = "کرتە لە نیشانی ماڵ بکە تا بگەڕێیتەوە بۆ داشبۆرد، پاشان وێنەی نوێ بنێرە."
+logical_id = "ab9d69d1-2d80-4500-98a2-632792986043"
+content_hash = "sha256:2c41ebea2e06d537bce44fb3cf009a6aff295f06163d983fd9cf7715c32202ab"
+size = 67001
+mtime_ms = 1787439133265
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/ab9d69d1-2d80-4500-98a2-632792986043/5ab161a2-c379-4e93-a758-47eee862a66e"
+storage_version_token = "1787439142433722"
+content_type = "image/jpeg"
