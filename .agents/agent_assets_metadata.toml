@@ -70,3 +70,17 @@ mtime_ms = 1787437977842
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/623dab04-933f-4660-93b9-3c9347c1a163/33ff737e-6c40-407f-97f8-178a08f3529c"
 storage_version_token = "1787437985578969"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "mSbe2p3a0cEMKBlTOwsAS"
+uri = "file://.agents/outputs/meta-step-5-create-app-marked.jpg"
+type = "image"
+title = "هەنگاوی پێنجەم — دروستکردنی ئەپ"
+description = "کرتە لە دوگمەی سەوزی Create app بکە تا ئەپەکەت دروست بێت."
+logical_id = "67c1c9f5-3e67-4b15-9e85-d53dc1976ae7"
+content_hash = "sha256:6e66869c9e3c397e46506640210c13b59071a5a2c3bcd4f4f36bf7e1acae9ca7"
+size = 122619
+mtime_ms = 1787438060834
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/67c1c9f5-3e67-4b15-9e85-d53dc1976ae7/c81a79d1-f4c9-45b1-a5cf-894e409e1ac5"
+storage_version_token = "1787438068502974"
+content_type = "image/jpeg"
