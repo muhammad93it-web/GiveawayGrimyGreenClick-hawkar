@@ -101,9 +101,9 @@ export function getFrontendBase(req: {
 const OAUTH_SCOPES = [
   "pages_show_list",
   "pages_read_engagement",
-  // Required by the current Pages API comments guide for the comment author's
-  // Page-scoped ID and name in the `from` field.
-  "pages_read_user_engagement",
+  // The Page management use case exposes this permission for reading visitor
+  // posts and comments. It is also available to this app for test users.
+  "pages_read_user_content",
   "instagram_basic",
   "instagram_manage_comments",
 ].join(",");
@@ -133,9 +133,6 @@ export async function buildOAuthUrl(
   url.searchParams.set("scope", OAUTH_SCOPES);
   url.searchParams.set("state", state);
   url.searchParams.set("response_type", "code");
-  // Force Facebook to show a fresh consent screen when the app requests a
-  // newly added permission from an already-connected administrator.
-  url.searchParams.set("auth_type", "rerequest");
   return { url: url.toString(), state };
 }
 
