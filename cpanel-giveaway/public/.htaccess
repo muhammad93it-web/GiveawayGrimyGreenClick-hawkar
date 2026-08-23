@@ -1,0 +1,10 @@
+Options -Indexes
+RewriteEngine On
+
+# Let Apache serve existing public assets directly.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# All application routes use the PHP front controller.
+RewriteRule ^ index.php [QSA,L]

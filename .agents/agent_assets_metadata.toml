@@ -294,3 +294,17 @@ mtime_ms = 1787440695040
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/bcf4636d-1522-43d7-b5b7-d75a9015aa8c/6373d3ef-64ba-46b2-84f4-72ab7a099d6c"
 storage_version_token = "1787440705021851"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "Artm2tWq9XJ9KRHheV5z_"
+uri = "file://.agents/outputs/gyadarmany-ranya-php-mysql-cpanel.zip"
+type = "unspecified"
+title = "پەکێجی چاککراوی PHP و MySQL بۆ cPanel"
+description = "ZIP ـی ئامادەی کردنەوە لە /home/USERNAME/giveaway-app؛ فۆڵدەرەکانی public، cron، database و config ڕاستەوخۆ لە ناویدان."
+logical_id = "12ef98fd-5f1e-4763-9adf-2c80e860eb6c"
+content_hash = "sha256:ef5df09ffd67af5fc83c6d2b7cae3e3c96e380a21f26f20e3c06acb3ed2fe8db"
+size = 161856
+mtime_ms = 1787493952495
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/12ef98fd-5f1e-4763-9adf-2c80e860eb6c/ac9de24d-dd03-4885-99f5-c0604b542259"
+storage_version_token = "1787493963555787"
+content_type = "application/octet-stream"
