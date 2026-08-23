@@ -101,6 +101,7 @@ export const GetCurrentGiveawayResponse = zod.object({
   "status": zod.union([zod.literal('idle'),zod.literal('running'),zod.literal('paused'),zod.literal('completed'),zod.literal(null)]).nullable(),
   "prizeCount": zod.number().int().nullable(),
   "prizeTitle": zod.string().nullable(),
+  "assetId": zod.string().nullable(),
   "postId": zod.string().nullable(),
   "postPlatform": zod.union([zod.literal('facebook'),zod.literal('instagram'),zod.literal(null)]).nullable(),
   "postMessage": zod.string().nullable(),
@@ -121,7 +122,7 @@ export const GetCurrentGiveawayResponse = zod.object({
 
 
 /**
- * Select owned platform asset/post and configure prize. Requires authentication and CSRF token.
+ * Select owned platform asset/post and configure prize. Set reset to true only after the administrator confirms a fresh giveaway; this clears prior comments and rankings, including when selecting the same post again. Requires authentication and CSRF token.
  * @summary Set current giveaway
  */
 
@@ -131,7 +132,8 @@ export const PutCurrentGiveawayBody = zod.object({
   "assetId": zod.string(),
   "postId": zod.string(),
   "prizeCount": zod.number().int().min(1),
-  "prizeTitle": zod.string()
+  "prizeTitle": zod.string(),
+  "reset": zod.boolean().describe('Explicit administrator confirmation to start fresh and clear prior comments and rankings.')
 })
 
 export const PutCurrentGiveawayResponse = zod.object({
@@ -139,6 +141,7 @@ export const PutCurrentGiveawayResponse = zod.object({
   "status": zod.union([zod.literal('idle'),zod.literal('running'),zod.literal('paused'),zod.literal('completed'),zod.literal(null)]).nullable(),
   "prizeCount": zod.number().int().nullable(),
   "prizeTitle": zod.string().nullable(),
+  "assetId": zod.string().nullable(),
   "postId": zod.string().nullable(),
   "postPlatform": zod.union([zod.literal('facebook'),zod.literal('instagram'),zod.literal(null)]).nullable(),
   "postMessage": zod.string().nullable(),
@@ -171,6 +174,7 @@ export const PatchGiveawayStatusResponse = zod.object({
   "status": zod.union([zod.literal('idle'),zod.literal('running'),zod.literal('paused'),zod.literal('completed'),zod.literal(null)]).nullable(),
   "prizeCount": zod.number().int().nullable(),
   "prizeTitle": zod.string().nullable(),
+  "assetId": zod.string().nullable(),
   "postId": zod.string().nullable(),
   "postPlatform": zod.union([zod.literal('facebook'),zod.literal('instagram'),zod.literal(null)]).nullable(),
   "postMessage": zod.string().nullable(),
@@ -199,6 +203,7 @@ export const SyncGiveawayResponse = zod.object({
   "status": zod.union([zod.literal('idle'),zod.literal('running'),zod.literal('paused'),zod.literal('completed'),zod.literal(null)]).nullable(),
   "prizeCount": zod.number().int().nullable(),
   "prizeTitle": zod.string().nullable(),
+  "assetId": zod.string().nullable(),
   "postId": zod.string().nullable(),
   "postPlatform": zod.union([zod.literal('facebook'),zod.literal('instagram'),zod.literal(null)]).nullable(),
   "postMessage": zod.string().nullable(),

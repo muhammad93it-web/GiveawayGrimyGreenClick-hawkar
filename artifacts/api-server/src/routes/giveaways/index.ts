@@ -13,6 +13,7 @@ import {
   upsertGiveaway,
   syncGiveawayWithLock,
   SyncLockConflictError,
+  GiveawayResetConfirmationRequiredError,
   GIVEAWAY_STATUSES,
   MetaAuthError,
   MetaPermissionError,
@@ -64,7 +65,7 @@ router.put(
       return;
     }
 
-    const { assetId, postId, prizeCount, prizeTitle } = parsed.data;
+    const { assetId, postId, prizeCount, prizeTitle, reset } = parsed.data;
     const metaUserId = req.session!.metaUserId;
 
     // Verify the asset is owned by this connection
@@ -111,8 +112,16 @@ router.put(
         postMessage: postInfo.message,
         prizeCount,
         prizeTitle,
+        reset,
       });
     } catch (err) {
+      if (err instanceof GiveawayResetConfirmationRequiredError) {
+        res.status(400).json({
+          error:
+            "بۆ گۆڕینی پۆست پێویستە سەرەتا پاککردنەوەی ڕیزبەندیی پێشوو پشتڕاست بکەیتەوە",
+        });
+        return;
+      }
       if (err instanceof SyncLockConflictError) {
         res.status(409).json({
           error:

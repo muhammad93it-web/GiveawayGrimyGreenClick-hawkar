@@ -693,7 +693,7 @@ export const getPutCurrentGiveawayUrl = () => {
 }
 
 /**
- * Select owned platform asset/post and configure prize. Requires authentication and CSRF token.
+ * Select owned platform asset/post and configure prize. Set reset to true only after the administrator confirms a fresh giveaway; this clears prior comments and rankings, including when selecting the same post again. Requires authentication and CSRF token.
  * @summary Set current giveaway
  */
 export const putCurrentGiveaway = async (giveawayInput: GiveawayInput, options?: Parameters<typeof customFetch>[1]): Promise<GiveawayProjection> => {

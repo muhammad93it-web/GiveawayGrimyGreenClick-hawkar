@@ -3,7 +3,7 @@ import { useSearch } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button, Card, CardContent, CardHeader, CardTitle, Badge, Input } from '@/components/ui/shared';
 import { Avatar } from '@/components/Avatar';
-import { Play, Pause, RefreshCw, Trophy, ExternalLink, Settings, Facebook, Instagram, AlertCircle, CheckCircle2, LogOut } from 'lucide-react';
+import { Play, Pause, RefreshCw, Trophy, ExternalLink, Settings, Facebook, Instagram, AlertCircle, CheckCircle2, LogOut, RotateCcw } from 'lucide-react';
 import {
   useGetMetaStatus,
   getGetMetaStatusQueryKey,
@@ -71,21 +71,16 @@ export default function Dashboard() {
   const [selectedPostId, setSelectedPostId] = useState<string>('');
   const [prizeCount, setPrizeCount] = useState<number>(3);
   const [prizeTitle, setPrizeTitle] = useState<string>('');
-
-  const initializedForId = useRef<string | null>(null);
+  const [isChangingPost, setIsChangingPost] = useState(false);
+  const changeOriginAssetId = useRef<string>('');
 
   useEffect(() => {
-    if (giveaway && giveaway.exists) {
-      if (initializedForId.current !== giveaway.postId) {
-        if (giveaway.postId) setSelectedPostId(giveaway.postId);
-        if (giveaway.prizeCount) setPrizeCount(giveaway.prizeCount);
-        if (giveaway.prizeTitle) setPrizeTitle(giveaway.prizeTitle);
-        // We can't automatically know assetId from projection unless we fetch it,
-        // but typically user doesn't need to change assetId once running.
-        initializedForId.current = giveaway.postId || null;
-      }
-    }
-  }, [giveaway]);
+    if (!giveaway?.exists || isChangingPost) return;
+    setSelectedAssetId(giveaway.assetId ?? '');
+    setSelectedPostId(giveaway.postId ?? '');
+    if (giveaway.prizeCount) setPrizeCount(giveaway.prizeCount);
+    if (giveaway.prizeTitle) setPrizeTitle(giveaway.prizeTitle);
+  }, [giveaway, isChangingPost]);
 
   const { data: assets, error: assetsError } = useListMetaAssets({
     request: authReq,
@@ -110,10 +105,12 @@ export default function Dashboard() {
         assetId: selectedAssetId,
         postId: selectedPostId,
         prizeCount,
-        prizeTitle
+        prizeTitle,
+        reset: isChangingPost,
       }
     }, {
       onSuccess: () => {
+        setIsChangingPost(false);
         syncGiveaway.mutate();
       }
     });
@@ -124,6 +121,24 @@ export default function Dashboard() {
   const handleComplete = () => patchStatus.mutate({ data: { status: 'completed' } });
   const handleReset = () => patchStatus.mutate({ data: { status: 'idle' } });
   const handleSync = () => syncGiveaway.mutate();
+
+  const beginPostChange = () => {
+    const confirmed = window.confirm(
+      'گۆڕینی پۆست خەڵاتەکە دەستپێدەکاتەوە. هەموو کۆمێنت، بەشداربوو و ڕیزبەندیی پێشوو پاک دەکرێتەوە. دڵنیایت؟',
+    );
+    if (confirmed) {
+      changeOriginAssetId.current = selectedAssetId;
+      setIsChangingPost(true);
+    }
+  };
+
+  const cancelPostChange = () => {
+    setSelectedAssetId(changeOriginAssetId.current);
+    if (giveaway?.postId) setSelectedPostId(giveaway.postId);
+    if (giveaway?.prizeCount) setPrizeCount(giveaway.prizeCount);
+    if (giveaway?.prizeTitle) setPrizeTitle(giveaway.prizeTitle);
+    setIsChangingPost(false);
+  };
 
   const handleDisconnect = () => {
     const confirmed = window.confirm(
@@ -151,6 +166,8 @@ export default function Dashboard() {
   const totalComments = giveaway?.totalComments || 0;
   const totalParticipants = giveaway?.totalParticipants || participants.length;
   const canMutate = Boolean(metaStatus?.connected && metaStatus.csrfToken);
+  const targetLocked = Boolean(giveaway?.exists && !isChangingPost);
+  const configurationLocked = Boolean(giveaway?.exists && giveaway.status !== 'idle' && !isChangingPost);
 
   const getRankStyle = (index: number) => {
     if (index === 0) return 'bg-yellow-400/20 text-yellow-700';
@@ -305,7 +322,7 @@ export default function Dashboard() {
                         setSelectedAssetId(e.target.value);
                         setSelectedPostId('');
                       }}
-                      disabled={giveaway?.status !== 'idle' && giveaway?.exists}
+                      disabled={targetLocked}
                     >
                       <option value="">-- هەڵبژێرە --</option>
                       {assets?.map(a => (
@@ -320,7 +337,7 @@ export default function Dashboard() {
                       className="flex h-11 md:h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
                       value={selectedPostId}
                       onChange={e => setSelectedPostId(e.target.value)}
-                      disabled={!selectedAssetId || (giveaway?.status !== 'idle' && giveaway?.exists)}
+                      disabled={!selectedAssetId || targetLocked}
                     >
                       <option value="">-- هەڵبژێرە --</option>
                       {giveaway?.exists && giveaway.postId && !posts?.find(p => p.id === giveaway.postId) && (
@@ -343,7 +360,7 @@ export default function Dashboard() {
                       onChange={e => setPrizeTitle(e.target.value)}
                       placeholder="نموونە: خەڵاتی پایزە..."
                       className="h-11 md:h-10 bg-background"
-                      disabled={giveaway?.status !== 'idle' && giveaway?.exists}
+                      disabled={configurationLocked}
                     />
                   </div>
 
@@ -357,18 +374,51 @@ export default function Dashboard() {
                       onChange={e => setPrizeCount(parseInt(e.target.value) || 1)}
                       dir="ltr"
                       className="text-start h-11 md:h-10 bg-background"
-                      disabled={giveaway?.status !== 'idle' && giveaway?.exists}
+                      disabled={configurationLocked}
                     />
                   </div>
 
-                  {(!giveaway?.exists || giveaway?.status === 'idle') && (
+                  {(!giveaway?.exists || giveaway?.status === 'idle' || isChangingPost) && (
                     <Button
                       className="w-full h-11 md:h-10 mt-2"
                       onClick={handleSaveGiveaway}
                       disabled={!canMutate || !selectedAssetId || !selectedPostId || !prizeCount || !prizeTitle || putGiveaway.isPending}
                     >
-                      {putGiveaway.isPending ? 'خەریکە...' : 'پاشەکەوتکردن'}
+                      {putGiveaway.isPending ? 'خەریکە...' : isChangingPost ? 'دەستپێکردنەوە بە پۆستی هەڵبژێردراو' : 'پاشەکەوتکردن'}
                     </Button>
+                  )}
+
+                  {giveaway?.exists && !isChangingPost && (
+                    <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-2">
+                      <p className="text-xs leading-5 text-muted-foreground">
+                        بۆ هەڵبژاردنی پۆستێکی تر، یان دەستپێکردنەوە لە هەمان پۆست، ڕیزبەندیی ئێستا پاک دەکرێتەوە.
+                      </p>
+                      <Button
+                        variant="destructive"
+                        className="w-full gap-2"
+                        onClick={beginPostChange}
+                        disabled={!canMutate || putGiveaway.isPending || syncGiveaway.isPending}
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        گۆڕینی پۆست
+                      </Button>
+                    </div>
+                  )}
+
+                  {isChangingPost && (
+                    <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 space-y-2">
+                      <p className="text-xs leading-5 text-foreground">
+                        پۆستی نوێ یان هەمان پۆست هەڵبژێرە، پاشان «دەستپێکردنەوە» بکە. تەنها لەو کاتەدا زانیارییە پێشووەکان پاک دەکرێنەوە.
+                      </p>
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={cancelPostChange}
+                        disabled={putGiveaway.isPending}
+                      >
+                        پاشگەزبوونەوە
+                      </Button>
+                    </div>
                   )}
 
                   <div className="pt-4 border-t mt-4 space-y-2">

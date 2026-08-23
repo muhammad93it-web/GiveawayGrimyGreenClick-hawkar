@@ -18,6 +18,8 @@ export interface GiveawayProjection {
   /** @nullable */
   prizeTitle: string | null;
   /** @nullable */
+  assetId: string | null;
+  /** @nullable */
   postId: string | null;
   /** @nullable */
   postPlatform: GiveawayProjectionPostPlatform;

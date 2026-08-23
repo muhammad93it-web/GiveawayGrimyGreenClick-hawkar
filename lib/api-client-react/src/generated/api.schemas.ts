@@ -115,6 +115,8 @@ export interface GiveawayProjection {
   /** @nullable */
   prizeTitle: string | null;
   /** @nullable */
+  assetId: string | null;
+  /** @nullable */
   postId: string | null;
   /** @nullable */
   postPlatform: GiveawayProjectionPostPlatform;
@@ -139,6 +141,8 @@ export interface GiveawayInput {
   /** @minimum 1 */
   prizeCount: number;
   prizeTitle: string;
+  /** Explicit administrator confirmation to start fresh and clear prior comments and rankings. */
+  reset: boolean;
 }
 
 export type GiveawayStatusUpdateStatus = typeof GiveawayStatusUpdateStatus[keyof typeof GiveawayStatusUpdateStatus];

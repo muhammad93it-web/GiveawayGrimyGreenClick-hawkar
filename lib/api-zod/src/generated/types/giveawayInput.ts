@@ -12,4 +12,6 @@ export interface GiveawayInput {
   /** @minimum 1 */
   prizeCount: number;
   prizeTitle: string;
+  /** Explicit administrator confirmation to start fresh and clear prior comments and rankings. */
+  reset: boolean;
 }

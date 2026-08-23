@@ -530,6 +530,7 @@ export function buildGiveawayProjection(
       status: null,
       prizeCount: null,
       prizeTitle: null,
+      assetId: null,
       postId: null,
       postPlatform: null,
       postMessage: null,
@@ -546,6 +547,7 @@ export function buildGiveawayProjection(
     status: giveaway.status as "idle" | "running" | "paused" | "completed",
     prizeCount: giveaway.prizeCount,
     prizeTitle: giveaway.prizeTitle,
+    assetId: giveaway.assetId ?? null,
     postId: giveaway.postId ?? null,
     postPlatform:
       (giveaway.postPlatform as "facebook" | "instagram" | null) ?? null,
@@ -581,12 +583,28 @@ export async function upsertGiveaway(
     postMessage: string | null;
     prizeCount: number;
     prizeTitle: string;
+    /** Explicit confirmation to clear prior ranking, including for the same post. */
+    reset: boolean;
   },
 ): Promise<void> {
-  const existing = await getCurrentGiveaway(metaUserId);
-
   await db.transaction(async (tx) => {
+    // Serialize configuration decisions for this singleton giveaway. Without a
+    // row lock, two tabs can both decide against a stale pre-reset snapshot and
+    // restore counters that a concurrent reset has just cleared.
+    const [existing] = await tx
+      .select()
+      .from(giveawaysTable)
+      .where(eq(giveawaysTable.metaUserId, metaUserId))
+      .limit(1)
+      .for("update");
+
     if (existing) {
+      const targetChanged =
+        existing.assetId !== fields.assetId || existing.postId !== fields.postId;
+      if (targetChanged && !fields.reset) {
+        throw new GiveawayResetConfirmationRequiredError();
+      }
+      const shouldClearData = targetChanged || fields.reset;
       const staleThreshold = new Date(Date.now() - SYNC_LOCK_TTL_MS);
       const updated = await tx
         .update(giveawaysTable)
@@ -598,10 +616,9 @@ export async function upsertGiveaway(
           prizeCount: fields.prizeCount,
           prizeTitle: fields.prizeTitle,
           status: "idle",
-          totalComments: existing.postId !== fields.postId ? 0 : existing.totalComments,
-          totalParticipants:
-            existing.postId !== fields.postId ? 0 : existing.totalParticipants,
-          lastSyncedAt: existing.postId !== fields.postId ? null : existing.lastSyncedAt,
+          totalComments: shouldClearData ? 0 : existing.totalComments,
+          totalParticipants: shouldClearData ? 0 : existing.totalParticipants,
+          lastSyncedAt: shouldClearData ? null : existing.lastSyncedAt,
           lastError: null,
           // This UPDATE only succeeds when no live sync owns the lease.
           syncLockedAt: null,
@@ -623,8 +640,9 @@ export async function upsertGiveaway(
         throw new SyncLockConflictError();
       }
 
-      // Clear stale sync data transactionally whenever the post changes.
-      if (existing.postId !== fields.postId) {
+      // Clear stale sync data transactionally whenever the post changes or an
+      // administrator explicitly starts the same post over from scratch.
+      if (shouldClearData) {
         await tx
           .delete(importedCommentsTable)
           .where(eq(importedCommentsTable.giveawayId, existing.id));
@@ -667,6 +685,14 @@ export class SyncLockConflictError extends Error {
   constructor() {
     super("Another sync is already in progress");
     this.name = "SyncLockConflictError";
+  }
+}
+
+/** A changed post must never discard its current ranking without confirmation. */
+export class GiveawayResetConfirmationRequiredError extends Error {
+  constructor() {
+    super("Changing the selected post requires reset confirmation");
+    this.name = "GiveawayResetConfirmationRequiredError";
   }
 }
 
