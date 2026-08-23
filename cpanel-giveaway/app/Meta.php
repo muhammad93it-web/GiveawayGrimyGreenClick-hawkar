@@ -475,10 +475,13 @@ final class Meta
                 $edge = $edgeWasReturned ? $item[$replyEdge] : [];
                 $embedded = is_array($edge['data'] ?? null) ? $edge['data'] : [];
                 $replyAfter = self::nextCursor($edge);
+                $hasReplyCount = array_key_exists('comment_count', $item)
+                    && is_numeric($item['comment_count']);
                 $knownReplyCount = max(0, (int) ($item['comment_count'] ?? count($embedded)));
-                $comment['repliesComplete'] = $edgeWasReturned
-                    && $replyAfter === null
-                    && $knownReplyCount <= count($embedded);
+                $comment['repliesComplete'] = $replyAfter === null && (
+                    ($hasReplyCount && $knownReplyCount === 0)
+                    || ($edgeWasReturned && $knownReplyCount <= count($embedded))
+                );
                 $comment['replyAfter'] = $replyAfter;
 
                 foreach ($embedded as $replyItem) {

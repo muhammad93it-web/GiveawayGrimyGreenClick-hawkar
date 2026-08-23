@@ -378,3 +378,17 @@ mtime_ms = 1787527530086
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/531fc2d7-596b-4c11-a374-99ace18201da/420f87ae-04d3-491b-ba75-7364edcad2f5"
 storage_version_token = "1787527539506692"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "IiprcrpNCh86ehOpDuucr"
+uri = "file://.agents/outputs/gyadarmany-ranya-php-mysql-cpanel-v1.3.2.zip"
+type = "unspecified"
+title = "وەشانی ١.٣.٢ — هێنانەوەی خێراتر و ڕووکارێکی پاک"
+description = "پەیامە وردەکان لەبەر خەڵک لابراون، پشکنینی پەڕە بەتاڵەکانی وەڵام خێرا کراوە، و هێنانەوەی ناتەواوی ئێستا بە سەلامەتی جارێک دەستپێدەکاتەوە. فایلێکی نوێکردنەوەی بنکەی داتا لە ناو زیپەکەدایە."
+logical_id = "48fc5cd1-687a-4c42-84e3-fdcff962b15a"
+content_hash = "sha256:4f01f5b52a469a0d7e6837c3a254a5fde2e899091f8f02768bb77ae49865a7c7"
+size = 171032
+mtime_ms = 1787528675662
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/48fc5cd1-687a-4c42-84e3-fdcff962b15a/63220c59-ec67-4d96-aa85-1c26e7964043"
+storage_version_token = "1787528705555857"
+content_type = "application/octet-stream"

@@ -136,6 +136,19 @@ expect(
     'Only an opaque cursor, never a token-bearing next URL, may be persisted.'
 );
 
+$zeroReplyPage = Meta::normalizeCommentPage([
+    'data' => [[
+        'id' => 'zero-reply-comment',
+        'message' => 'کۆمێنتی بێ وەڵام',
+        'created_time' => '2026-08-20T12:00:00+0000',
+        'comment_count' => 0,
+    ]],
+], false);
+expect(
+    $zeroReplyPage['comments'][0]['repliesComplete'] === true,
+    'A Facebook comment with Meta-reported zero replies must not trigger an empty reply request.'
+);
+
 $projectionSqlMethod = new ReflectionMethod(Giveaway::class, 'identifiedParticipantsSql');
 $projectionSql = $projectionSqlMethod->invoke(null);
 expect(

@@ -167,8 +167,8 @@ const settle = async () => {
 
 const dashboardIds = [
   "notice", "setup-card", "app-card", "callback", "admin-name", "asset", "post",
-  "prize-title", "prize-count", "status", "totals", "identity-note", "participants",
-  "import-note", "sync-note", "save", "change", "start", "pause", "complete", "sync", "disconnect",
+  "prize-title", "prize-count", "status", "totals", "participants",
+  "sync-note", "save", "change", "start", "pause", "complete", "sync", "disconnect",
   "refresh-token",
 ];
 const dashboard = createContext(dashboardIds);
@@ -179,11 +179,7 @@ vm.runInContext(
 await settle();
 
 assert.match(dashboard.elements.totals.textContent, /5 کۆمێنت/);
-assert.match(dashboard.elements.totals.textContent, /1 بەشداربووی ناسنامەدار/);
-assert.doesNotMatch(dashboard.elements.totals.textContent, /بێ ناسنامە/);
-assert.match(dashboard.elements["identity-note"].textContent, /3 کۆمێنتی دیکە لە پۆدیۆم و ڕیزبەندی دانەنراون/);
-assert.match(dashboard.elements["import-note"].textContent, /2 پەڕە و 5 کۆمێنت/);
-assert.match(dashboard.elements["import-note"].textContent, /داتای پێشوو/);
+assert.doesNotMatch(dashboard.elements.totals.textContent, /ناسنامە/);
 assert.equal(dashboard.elements.participants.children.length, 1);
 assert.equal(dashboard.elements.participants.children[0].children[3].textContent, 2);
 assert.equal(dashboard.elements.participants.children[0].children[2].textContent, "بەشداربووی ناسنامەدار");

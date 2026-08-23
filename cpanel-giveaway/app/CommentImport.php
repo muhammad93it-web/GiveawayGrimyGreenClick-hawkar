@@ -10,6 +10,7 @@ declare(strict_types=1);
 final class CommentImport
 {
     private const MAX_PAGE_REQUESTS_PER_PASS = 4;
+    private const STRATEGY_VERSION = 2;
 
     public static function emptyStatus(): array
     {
@@ -156,7 +157,8 @@ final class CommentImport
             $newRun = !$run
                 || $run['source_post_id'] !== $giveaway['post_id']
                 || $run['source_platform'] !== $giveaway['post_platform']
-                || $run['status'] === 'complete';
+                || $run['status'] === 'complete'
+                || (int) ($run['import_version'] ?? 0) < self::STRATEGY_VERSION;
 
             if ($newRun) {
                 $runId = App::uuid();
@@ -166,13 +168,14 @@ final class CommentImport
                     'INSERT INTO comment_import_runs
                         (giveaway_id, run_id, source_post_id, source_platform, status, phase,
                          next_after, page_count, fetched_count, completion_requested,
-                         started_at, completed_at, last_error)
-                     VALUES (?, ?, ?, ?, "running", "top_level", NULL, 0, 0, ?, UTC_TIMESTAMP(), NULL, NULL)
+                         import_version, started_at, completed_at, last_error)
+                     VALUES (?, ?, ?, ?, "running", "top_level", NULL, 0, 0, ?, ?, UTC_TIMESTAMP(), NULL, NULL)
                      ON DUPLICATE KEY UPDATE
                         run_id=VALUES(run_id), source_post_id=VALUES(source_post_id),
                         source_platform=VALUES(source_platform), status="running", phase="top_level",
                         next_after=NULL, page_count=0, fetched_count=0,
                         completion_requested=VALUES(completion_requested),
+                        import_version=VALUES(import_version),
                         started_at=UTC_TIMESTAMP(), completed_at=NULL, last_error=NULL'
                 )->execute([
                     $giveaway['id'],
@@ -180,6 +183,7 @@ final class CommentImport
                     $giveaway['post_id'],
                     $giveaway['post_platform'],
                     $completeAfterSync ? 1 : 0,
+                    self::STRATEGY_VERSION,
                 ]);
             } else {
                 $pdo->prepare(
