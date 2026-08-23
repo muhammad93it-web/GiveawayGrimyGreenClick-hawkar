@@ -106,7 +106,12 @@ export function getFrontendBase(req: {
   return `${req.protocol}://${req.get("host") ?? "localhost"}`;
 }
 
-const OAUTH_SCOPES = [
+/**
+ * The exact permissions this app uses. Keep this list intentionally narrow:
+ * it is the source of truth for both the OAuth dialog and the App Review
+ * submission. Adding one means documenting and reviewing its user benefit.
+ */
+export const META_OAUTH_PERMISSIONS = [
   "pages_show_list",
   "pages_read_engagement",
   // The Page management use case exposes this permission for reading visitor
@@ -114,7 +119,9 @@ const OAUTH_SCOPES = [
   "pages_read_user_content",
   "instagram_basic",
   "instagram_manage_comments",
-].join(",");
+] as const;
+
+const OAUTH_SCOPES = META_OAUTH_PERMISSIONS.join(",");
 
 /**
  * Generate an OAuth state, persist its hash, and return the OAuth
@@ -141,6 +148,13 @@ export async function buildOAuthUrl(
   url.searchParams.set("scope", OAUTH_SCOPES);
   url.searchParams.set("state", state);
   url.searchParams.set("response_type", "code");
+  // When an administrator previously declined a required permission, Meta
+  // would otherwise keep returning the old, incomplete grant. Re-prompting
+  // lets a public, Live-mode user correct that consent without dashboard work.
+  url.searchParams.set("auth_type", "rerequest");
+  // Useful while testing App Review and troubleshooting a public connection:
+  // Meta includes the permissions it actually granted in the callback.
+  url.searchParams.set("return_scopes", "true");
   return { url: url.toString(), state };
 }
 

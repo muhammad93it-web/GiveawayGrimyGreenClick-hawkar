@@ -22,3 +22,10 @@ timeoutMs = 20000
 [nix]
 channel = "stable-25_05"
 packages = ["freetype", "gumbo", "harfbuzz", "jbig2dec", "libjpeg_turbo", "mupdf", "openjpeg", "swig", "xcbuild"]
+
+[userenv]
+
+[userenv.production]
+APP_ORIGIN = "https://giveaway.mang-herbal.com"
+META_GRAPH_VERSION = "v26.0"
+META_REDIRECT_URI = "https://giveaway.mang-herbal.com/api/meta/callback"
