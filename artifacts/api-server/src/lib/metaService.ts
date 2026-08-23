@@ -133,6 +133,9 @@ export async function buildOAuthUrl(
   url.searchParams.set("scope", OAUTH_SCOPES);
   url.searchParams.set("state", state);
   url.searchParams.set("response_type", "code");
+  // Force Facebook to show a fresh consent screen when the app requests a
+  // newly added permission from an already-connected administrator.
+  url.searchParams.set("auth_type", "rerequest");
   return { url: url.toString(), state };
 }
 
