@@ -22,4 +22,5 @@ export * from './metaCallbackParams';
 export * from './metaPost';
 export * from './metaPostPlatform';
 export * from './metaStatus';
+export * from './metaStatusTokenStatus';
 export * from './successResponse';

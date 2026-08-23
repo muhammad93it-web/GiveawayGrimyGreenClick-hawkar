@@ -146,7 +146,7 @@ export const getGetMetaStatusUrl = () => {
 }
 
 /**
- * Returns whether Meta credentials are configured, connection status, admin name, and callback URL. Also sets CSRF token cookie.
+ * Returns whether Meta credentials are configured, connection status, safe token-health metadata, admin name, and callback URL. Also sets CSRF token cookie.
  * @summary Get Meta integration status
  */
 export const getMetaStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<MetaStatus> => {

@@ -21,6 +21,7 @@ import {
   MetaPermissionError,
   MetaGraphError,
   MetaPageCapError,
+  metaConnectionNeedsReconnect,
 } from "./metaService";
 
 const WORKER_INTERVAL_MS = 15 * 1000; // 15 seconds
@@ -57,6 +58,20 @@ function logWebhookSyncFailure(giveawayId: string, err: unknown): void {
     );
     return;
   }
+  if (err instanceof MetaAuthError || err instanceof MetaPermissionError) {
+    if (err.authorizationFailureIsCurrent === false) {
+      logger.debug(
+        { giveawayId, errClass },
+        "Meta webhook: ignored stale authorization failure",
+      );
+      return;
+    }
+    logger.warn(
+      { giveawayId, errClass },
+      "Meta webhook: authorization needs reconnect",
+    );
+    return;
+  }
   logger.warn({ giveawayId, errClass }, "Meta webhook: sync failed");
 }
 
@@ -68,6 +83,13 @@ async function runWebhookSync(
     do {
       state.rerunRequested = false;
       try {
+        if (await metaConnectionNeedsReconnect(giveaway.metaUserId)) {
+          logger.debug(
+            { giveawayId: giveaway.id },
+            "Meta webhook: paused until reconnect",
+          );
+          return;
+        }
         await syncGiveawayWithLock(giveaway);
         logger.info({ giveawayId: giveaway.id }, "Meta webhook: sync complete");
       } catch (err) {
@@ -119,6 +141,13 @@ async function runSyncTick(): Promise<void> {
 
   for (const giveaway of runningGiveaways) {
     try {
+      if (await metaConnectionNeedsReconnect(giveaway.metaUserId)) {
+        logger.debug(
+          { giveawayId: giveaway.id },
+          "Background worker: paused until reconnect",
+        );
+        continue;
+      }
       await syncGiveawayWithLock(giveaway);
       logger.info({ giveawayId: giveaway.id }, "Background worker: sync complete");
     } catch (err) {
@@ -136,6 +165,18 @@ async function runSyncTick(): Promise<void> {
           { giveawayId: giveaway.id, errClass },
           "Background worker: skipped — sync lock held",
         );
+      } else if (err instanceof MetaAuthError || err instanceof MetaPermissionError) {
+        if (err.authorizationFailureIsCurrent === false) {
+          logger.debug(
+            { giveawayId: giveaway.id, errClass },
+            "Background worker: ignored stale authorization failure",
+          );
+        } else {
+          logger.warn(
+            { giveawayId: giveaway.id, errClass },
+            "Background worker: authorization needs reconnect",
+          );
+        }
       } else {
         logger.warn(
           { giveawayId: giveaway.id, errClass },

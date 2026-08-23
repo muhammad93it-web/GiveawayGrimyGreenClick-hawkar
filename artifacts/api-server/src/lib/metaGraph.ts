@@ -110,6 +110,9 @@ async function graphFetch<T>(url: string, token: string): Promise<T> {
 }
 
 export class MetaAuthError extends Error {
+  authorizationVersion?: string;
+  authorizationFailureIsCurrent?: boolean;
+
   constructor(message: string) {
     super(message);
     this.name = "MetaAuthError";
@@ -117,6 +120,9 @@ export class MetaAuthError extends Error {
 }
 
 export class MetaPermissionError extends Error {
+  authorizationVersion?: string;
+  authorizationFailureIsCurrent?: boolean;
+
   constructor(message: string) {
     super(message);
     this.name = "MetaPermissionError";
@@ -144,6 +150,22 @@ export class MetaPageCapError extends Error {
   }
 }
 
+export interface AccessTokenGrant {
+  accessToken: string;
+  expiresAt: Date | null;
+}
+
+function expiresAtFromSeconds(expiresIn: unknown): Date | null {
+  if (
+    typeof expiresIn !== "number" ||
+    !Number.isFinite(expiresIn) ||
+    expiresIn <= 0
+  ) {
+    return null;
+  }
+  return new Date(Date.now() + expiresIn * 1000);
+}
+
 /**
  * Exchange an authorization code for a short-lived user token.
  * Uses a POST body to avoid the token appearing in server logs.
@@ -153,7 +175,7 @@ export async function exchangeCodeForToken(
   redirectUri: string,
   appId: string,
   appSecret: string,
-): Promise<string> {
+): Promise<AccessTokenGrant> {
   const body = new URLSearchParams({
     client_id: appId,
     client_secret: appSecret,
@@ -167,12 +189,16 @@ export async function exchangeCodeForToken(
   });
   const data = (await response.json()) as {
     access_token?: string;
+    expires_in?: number;
     error?: { message?: string };
   };
   if (!response.ok || !data.access_token) {
     throw new MetaAuthError("Failed to exchange authorization code");
   }
-  return data.access_token;
+  return {
+    accessToken: data.access_token,
+    expiresAt: expiresAtFromSeconds(data.expires_in),
+  };
 }
 
 /**
@@ -183,7 +209,8 @@ export async function getLongLivedToken(
   shortToken: string,
   appId: string,
   appSecret: string,
-): Promise<string> {
+  fallbackExpiresAt: Date | null,
+): Promise<AccessTokenGrant> {
   const body = new URLSearchParams({
     grant_type: "fb_exchange_token",
     client_id: appId,
@@ -197,13 +224,17 @@ export async function getLongLivedToken(
   });
   const data = (await response.json()) as {
     access_token?: string;
+    expires_in?: number;
     error?: { message?: string };
   };
   if (!response.ok || !data.access_token) {
     // Fall back to the original token if long-lived exchange fails
-    return shortToken;
+    return { accessToken: shortToken, expiresAt: fallbackExpiresAt };
   }
-  return data.access_token;
+  return {
+    accessToken: data.access_token,
+    expiresAt: expiresAtFromSeconds(data.expires_in),
+  };
 }
 
 export interface MeResult {
@@ -221,6 +252,29 @@ export interface MeResult {
 export async function fetchMeAndAccounts(token: string): Promise<MeResult> {
   const url = `${GRAPH_BASE}/me?fields=id,name,accounts{id,name,access_token,picture,instagram_business_account}`;
   return graphFetch<MeResult>(url, token);
+}
+
+/**
+ * Validate the current user token through a minimal authenticated request.
+ * The token stays in the Authorization header and never enters the URL.
+ */
+export async function validateUserAccessToken(token: string): Promise<void> {
+  await graphFetch<{ id: string }>(`${GRAPH_BASE}/me?fields=id`, token);
+}
+
+/**
+ * Validate a Page/Instagram token against the asset it was issued for.
+ * The external ID is non-secret; the token stays in the Authorization header.
+ */
+export async function validateAssetAccessToken(
+  assetId: string,
+  token: string,
+): Promise<void> {
+  const safeAssetId = encodeURIComponent(assetId);
+  await graphFetch<{ id: string }>(
+    `${GRAPH_BASE}/${safeAssetId}?fields=id`,
+    token,
+  );
 }
 
 /**

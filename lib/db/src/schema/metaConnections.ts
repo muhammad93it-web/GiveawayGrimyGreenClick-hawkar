@@ -34,6 +34,20 @@ export const metaConnectionsTable = pgTable(
     encryptedPageTokensJson: text("encrypted_page_tokens_json"),
     // Serialized JSON of asset metadata (pages + instagram accounts)
     assetsJson: text("assets_json").notNull().default("[]"),
+    /**
+     * Safe token-health metadata only. The token itself remains encrypted in
+     * the fields above and is never returned to the client.
+     */
+    tokenStatus: text("token_status").notNull().default("unknown"),
+    tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }),
+    tokenCheckedAt: timestamp("token_checked_at", { withTimezone: true }),
+    /**
+     * Rotated on every successful OAuth callback. Sync failures update token
+     * health only when they came from the currently authorized credentials.
+     */
+    authorizationVersion: text("authorization_version")
+      .notNull()
+      .default("legacy"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

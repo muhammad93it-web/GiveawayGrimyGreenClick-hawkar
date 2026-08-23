@@ -27,6 +27,8 @@ import {
   MetaPageNotAllowedError,
   MetaConnectionConflictError,
   getRunningFacebookGiveawayForWebhook,
+  getMetaTokenHealth,
+  type MetaTokenHealth,
 } from "../../lib/metaService";
 import {
   GetMetaStatusResponse,
@@ -206,6 +208,11 @@ router.get(
     const callbackUrl = getCallbackUrl(req);
     let adminName: string | null = null;
     let connected = false;
+    let tokenHealth: MetaTokenHealth = {
+      status: "unknown",
+      expiresAt: null as string | null,
+      checkedAt: null as string | null,
+    };
 
     if (req.session) {
       const [conn] = await db
@@ -215,6 +222,7 @@ router.get(
       if (conn) {
         connected = true;
         adminName = conn.adminName;
+        tokenHealth = await getMetaTokenHealth(req.session.metaUserId);
       }
     }
 
@@ -227,6 +235,9 @@ router.get(
       adminName,
       callbackUrl,
       csrfToken,
+      tokenStatus: tokenHealth.status,
+      tokenExpiresAt: tokenHealth.expiresAt,
+      tokenCheckedAt: tokenHealth.checkedAt,
     });
     res.json(payload);
   },

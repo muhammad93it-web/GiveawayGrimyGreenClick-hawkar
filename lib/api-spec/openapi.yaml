@@ -34,7 +34,7 @@ paths:
       operationId: getMetaStatus
       tags: [meta]
       summary: Get Meta integration status
-      description: Returns whether Meta credentials are configured, connection status, admin name, and callback URL. Also sets CSRF token cookie.
+      description: Returns whether Meta credentials are configured, connection status, safe token-health metadata, admin name, and callback URL. Also sets CSRF token cookie.
       responses:
         "200":
           description: Meta status
@@ -383,12 +383,27 @@ components:
           type: string
         csrfToken:
           type: ["string", "null"]
+        tokenStatus:
+          type: string
+          enum: [active, expiring, expired, reconnect_required, unknown]
+          description: Safe token health state. Never includes a token value.
+        tokenExpiresAt:
+          type: ["string", "null"]
+          format: date-time
+          description: Token expiry reported by Meta, when available.
+        tokenCheckedAt:
+          type: ["string", "null"]
+          format: date-time
+          description: When Meta token health was last successfully checked.
       required:
         - configured
         - connected
         - adminName
         - callbackUrl
         - csrfToken
+        - tokenStatus
+        - tokenExpiresAt
+        - tokenCheckedAt
 
     MetaAsset:
       type: object

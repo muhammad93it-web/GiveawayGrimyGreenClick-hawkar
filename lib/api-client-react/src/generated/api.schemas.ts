@@ -17,6 +17,20 @@ export interface SuccessResponse {
   ok: boolean;
 }
 
+/**
+ * Safe token health state. Never includes a token value.
+ */
+export type MetaStatusTokenStatus = typeof MetaStatusTokenStatus[keyof typeof MetaStatusTokenStatus];
+
+
+export const MetaStatusTokenStatus = {
+  active: 'active',
+  expiring: 'expiring',
+  expired: 'expired',
+  reconnect_required: 'reconnect_required',
+  unknown: 'unknown',
+} as const;
+
 export interface MetaStatus {
   configured: boolean;
   connected: boolean;
@@ -25,6 +39,18 @@ export interface MetaStatus {
   callbackUrl: string;
   /** @nullable */
   csrfToken: string | null;
+  /** Safe token health state. Never includes a token value. */
+  tokenStatus: MetaStatusTokenStatus;
+  /**
+     * Token expiry reported by Meta, when available.
+     * @nullable
+     */
+  tokenExpiresAt: string | null;
+  /**
+     * When Meta token health was last successfully checked.
+     * @nullable
+     */
+  tokenCheckedAt: string | null;
 }
 
 export type MetaAssetPlatform = typeof MetaAssetPlatform[keyof typeof MetaAssetPlatform];

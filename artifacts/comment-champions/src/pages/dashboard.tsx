@@ -34,7 +34,13 @@ export default function Dashboard() {
 
   const authReq = useMemo(() => ({ credentials: 'include' as const }), []);
 
-  const { data: metaStatus, isLoading: isMetaLoading } = useGetMetaStatus({ request: authReq });
+  const { data: metaStatus, isLoading: isMetaLoading } = useGetMetaStatus({
+    request: authReq,
+    query: {
+      queryKey: getGetMetaStatusQueryKey(),
+      refetchInterval: 60_000
+    }
+  });
 
   const mutationReq = useMemo(() => ({
     credentials: 'include' as const,
@@ -165,7 +171,9 @@ export default function Dashboard() {
   const participants = giveaway?.participants || [];
   const totalComments = giveaway?.totalComments || 0;
   const totalParticipants = giveaway?.totalParticipants || participants.length;
-  const canMutate = Boolean(metaStatus?.connected && metaStatus.csrfToken);
+  const requiresReconnect = metaStatus?.tokenStatus === 'expired' || metaStatus?.tokenStatus === 'reconnect_required';
+  const isExpiringSoon = metaStatus?.tokenStatus === 'expiring';
+  const canMutate = Boolean(metaStatus?.connected && metaStatus.csrfToken && !requiresReconnect);
   const targetLocked = Boolean(giveaway?.exists && !isChangingPost);
   const configurationLocked = Boolean(giveaway?.exists && giveaway.status !== 'idle' && !isChangingPost);
 
@@ -288,6 +296,32 @@ export default function Dashboard() {
         )}
 
         {metaStatus?.connected && (
+          <>
+            {(requiresReconnect || isExpiringSoon) && (
+              <Card className={requiresReconnect ? 'border-destructive/50 bg-destructive/5 shadow-sm' : 'border-amber-500/50 bg-amber-500/5 shadow-sm'}>
+                <CardContent className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className={`w-5 h-5 mt-0.5 shrink-0 ${requiresReconnect ? 'text-destructive' : 'text-amber-600'}`} />
+                    <div className="space-y-1">
+                      <p className="font-bold">
+                        {requiresReconnect
+                          ? 'پەیوەندیی مێتا بەسەرچووە یان پێویستی بە نوێکردنەوەیە'
+                          : 'مۆڵەتی مێتا بەزوویی بەسەر دەچێت'}
+                      </p>
+                      <p className="text-sm text-muted-foreground leading-6">
+                        {requiresReconnect
+                          ? 'نوێکردنەوەی خۆکاری کۆمێنت و ڕیزبەندی وەستاوە تا مۆڵەتەکە نوێ بکەیتەوە.'
+                          : `پێش بەسەرچوون، مۆڵەتەکە نوێ بکەرەوە${metaStatus.tokenExpiresAt ? ` (بەرواری بەسەرچوون: ${new Date(metaStatus.tokenExpiresAt).toLocaleDateString()})` : ''}.`}
+                      </p>
+                    </div>
+                  </div>
+                  <Button onClick={() => { window.location.href = '/api/meta/login'; }} className="gap-2 shrink-0">
+                    <RefreshCw className="w-4 h-4" />
+                    نوێکردنەوەی مۆڵەت
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
             {/* Settings & Controls */}
@@ -433,7 +467,7 @@ export default function Dashboard() {
                       نوێکردنەوەی مۆڵەتەکانی مێتا
                     </Button>
                     <p className="text-xs text-muted-foreground leading-5">
-                      بۆ وەرگرتنی ناو و ناسنامەی کۆمێنتنووسان؛ خەڵات و ڕیزبەندییەکەت ناسڕێتەوە.
+                      خەڵات و ڕیزبەندییەکەت پارێزراو دەبێت و ناسڕێتەوە.
                     </p>
                     <Button variant="ghost" onClick={handleDisconnect} disabled={!canMutate || disconnectMeta.isPending} className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive">
                       <LogOut className="w-4 h-4 ml-2" />
@@ -636,6 +670,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
+          </>
         )}
       </div>
     </div>

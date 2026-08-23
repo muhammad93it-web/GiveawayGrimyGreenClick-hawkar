@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { MetaStatusTokenStatus } from './metaStatusTokenStatus';
 
 export interface MetaStatus {
   configured: boolean;
@@ -14,4 +15,16 @@ export interface MetaStatus {
   callbackUrl: string;
   /** @nullable */
   csrfToken: string | null;
+  /** Safe token health state. Never includes a token value. */
+  tokenStatus: MetaStatusTokenStatus;
+  /**
+     * Token expiry reported by Meta, when available.
+     * @nullable
+     */
+  tokenExpiresAt: Date | null;
+  /**
+     * When Meta token health was last successfully checked.
+     * @nullable
+     */
+  tokenCheckedAt: Date | null;
 }

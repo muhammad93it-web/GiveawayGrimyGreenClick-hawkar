@@ -18,7 +18,7 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
- * Returns whether Meta credentials are configured, connection status, admin name, and callback URL. Also sets CSRF token cookie.
+ * Returns whether Meta credentials are configured, connection status, safe token-health metadata, admin name, and callback URL. Also sets CSRF token cookie.
  * @summary Get Meta integration status
  */
 export const GetMetaStatusResponse = zod.object({
@@ -26,7 +26,10 @@ export const GetMetaStatusResponse = zod.object({
   "connected": zod.boolean(),
   "adminName": zod.string().nullable(),
   "callbackUrl": zod.string(),
-  "csrfToken": zod.string().nullable()
+  "csrfToken": zod.string().nullable(),
+  "tokenStatus": zod.enum(['active', 'expiring', 'expired', 'reconnect_required', 'unknown']).describe('Safe token health state. Never includes a token value.'),
+  "tokenExpiresAt": zod.coerce.date().nullable().describe('Token expiry reported by Meta, when available.'),
+  "tokenCheckedAt": zod.coerce.date().nullable().describe('When Meta token health was last successfully checked.')
 })
 
 

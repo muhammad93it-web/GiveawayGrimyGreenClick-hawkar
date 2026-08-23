@@ -1,1 +1,2 @@
 - [Meta comment author privacy](meta-comment-author-privacy.md) — Treat an absent Graph `from` object as authoritative; keep anonymous fallbacks and never infer or scrape identities.
+- [Meta token health](meta-token-health.md) — Keep tokens out of URLs; capture OAuth expiry, validate with bearer requests, and generation-guard health writes.

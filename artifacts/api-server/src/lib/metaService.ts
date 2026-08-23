@@ -23,6 +23,8 @@ import {
   fetchInstagramMedia,
   fetchAllFacebookComments,
   fetchAllInstagramComments,
+  validateUserAccessToken,
+  validateAssetAccessToken,
   ANONYMOUS_DISPLAY_NAME,
   MetaAuthError,
   MetaPermissionError,
@@ -35,6 +37,8 @@ import type { Response } from "express";
 import { randomUUID } from "crypto";
 
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const TOKEN_HEALTH_CACHE_MS = 10 * 60 * 1000; // 10 minutes
+const TOKEN_EXPIRY_WARNING_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 /** Stale sync lock expires after this many milliseconds */
 // A capped sync can make up to 50 sequential Graph requests. Each request has
@@ -45,6 +49,205 @@ export interface MetaConfig {
   appId: string;
   appSecret: string;
   allowedPageId: string;
+}
+
+export const META_TOKEN_STATUSES = [
+  "active",
+  "expiring",
+  "expired",
+  "reconnect_required",
+  "unknown",
+] as const;
+
+export type MetaTokenStatus = (typeof META_TOKEN_STATUSES)[number];
+
+export interface MetaTokenHealth {
+  status: MetaTokenStatus;
+  expiresAt: string | null;
+  checkedAt: string | null;
+}
+
+function isMetaTokenStatus(value: string): value is MetaTokenStatus {
+  return META_TOKEN_STATUSES.includes(value as MetaTokenStatus);
+}
+
+function tokenStatusFromConnection(
+  connection: typeof metaConnectionsTable.$inferSelect,
+): MetaTokenHealth {
+  return {
+    status: isMetaTokenStatus(connection.tokenStatus)
+      ? connection.tokenStatus
+      : "unknown",
+    expiresAt: connection.tokenExpiresAt?.toISOString() ?? null,
+    checkedAt: connection.tokenCheckedAt?.toISOString() ?? null,
+  };
+}
+
+function getTokenHealthStatus(
+  isValid: boolean,
+  expiresAt: Date | null,
+  now: Date,
+): MetaTokenStatus {
+  if (!isValid) {
+    return expiresAt && expiresAt.getTime() <= now.getTime()
+      ? "expired"
+      : "reconnect_required";
+  }
+  if (expiresAt && expiresAt.getTime() <= now.getTime()) return "expired";
+  if (
+    expiresAt &&
+    expiresAt.getTime() - now.getTime() <= TOKEN_EXPIRY_WARNING_MS
+  ) {
+    return "expiring";
+  }
+  return "active";
+}
+
+/**
+ * Reads Meta's token inspector at a bounded interval and persists only
+ * non-sensitive health metadata. A temporary Graph failure does not overwrite
+ * the last known health, so it cannot falsely tell an administrator to reconnect.
+ */
+export async function getMetaTokenHealth(
+  metaUserId: string,
+): Promise<MetaTokenHealth> {
+  const [connection] = await db
+    .select()
+    .from(metaConnectionsTable)
+    .where(eq(metaConnectionsTable.metaUserId, metaUserId));
+  if (!connection) {
+    return { status: "unknown", expiresAt: null, checkedAt: null };
+  }
+
+  const now = new Date();
+  if (
+    connection.tokenCheckedAt &&
+    now.getTime() - connection.tokenCheckedAt.getTime() <
+      TOKEN_HEALTH_CACHE_MS
+  ) {
+    return tokenStatusFromConnection(connection);
+  }
+
+  const config = getMetaConfig();
+  if (!config) return tokenStatusFromConnection(connection);
+
+  let userToken: string;
+  let pageTokens: Array<{ id: string; token: string }>;
+  try {
+    userToken = decrypt(
+      connection.encryptedLongLivedToken ?? connection.encryptedUserToken,
+    );
+    const pageTokenEntries = connection.encryptedPageTokensJson
+      ? (JSON.parse(decrypt(connection.encryptedPageTokensJson)) as Array<{
+          id: string;
+          token: string;
+        }>)
+      : [];
+    const seenTokens = new Set<string>();
+    pageTokens = [];
+    for (const entry of pageTokenEntries) {
+      const token = decrypt(entry.token);
+      if (seenTokens.has(token)) continue;
+      seenTokens.add(token);
+      pageTokens.push({ id: entry.id, token });
+    }
+  } catch {
+    return tokenStatusFromConnection(connection);
+  }
+
+  let status: MetaTokenStatus;
+  try {
+    await Promise.all([
+      validateUserAccessToken(userToken),
+      ...pageTokens.map((entry) =>
+        validateAssetAccessToken(entry.id, entry.token),
+      ),
+    ]);
+    status = getTokenHealthStatus(true, connection.tokenExpiresAt, now);
+  } catch (err) {
+    if (err instanceof MetaAuthError || err instanceof MetaPermissionError) {
+      status = getTokenHealthStatus(false, connection.tokenExpiresAt, now);
+    } else {
+      // Temporary Graph/network failures keep the last known health.
+      return tokenStatusFromConnection(connection);
+    }
+  }
+
+  try {
+    const [updated] = await db
+      .update(metaConnectionsTable)
+      .set({
+        tokenStatus: status,
+        tokenCheckedAt: now,
+      })
+      .where(
+        and(
+          eq(metaConnectionsTable.metaUserId, metaUserId),
+          eq(
+            metaConnectionsTable.authorizationVersion,
+            connection.authorizationVersion,
+          ),
+        ),
+      )
+      .returning();
+    if (updated) return tokenStatusFromConnection(updated);
+
+    // OAuth rotated credentials while the old inspection was in flight.
+    // Return the newly authorized connection's health instead of stale data.
+    const [current] = await db
+      .select()
+      .from(metaConnectionsTable)
+      .where(eq(metaConnectionsTable.metaUserId, metaUserId))
+      .limit(1);
+    return current
+      ? tokenStatusFromConnection(current)
+      : { status: "unknown", expiresAt: null, checkedAt: null };
+  } catch {
+    // A database failure should not expose credentials or Graph details.
+    return tokenStatusFromConnection(connection);
+  }
+}
+
+/**
+ * Records a failed authorization observed during a live sync. This is not used
+ * for ordinary Graph/network failures, which should remain retryable.
+ */
+async function recordMetaAuthorizationFailure(
+  metaUserId: string,
+  authorizationVersion: string,
+): Promise<boolean> {
+  const updated = await db
+    .update(metaConnectionsTable)
+    .set({
+      tokenStatus: "reconnect_required",
+      tokenCheckedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(metaConnectionsTable.metaUserId, metaUserId),
+        eq(metaConnectionsTable.authorizationVersion, authorizationVersion),
+      ),
+    )
+    .returning({ metaUserId: metaConnectionsTable.metaUserId });
+  return updated.length > 0;
+}
+
+/**
+ * Background sync is intentionally paused after a confirmed authorization
+ * failure. Reauthorization or the dashboard health check resumes it.
+ */
+export async function metaConnectionNeedsReconnect(
+  metaUserId: string,
+): Promise<boolean> {
+  const [connection] = await db
+    .select({ tokenStatus: metaConnectionsTable.tokenStatus })
+    .from(metaConnectionsTable)
+    .where(eq(metaConnectionsTable.metaUserId, metaUserId))
+    .limit(1);
+  return (
+    connection?.tokenStatus === "expired" ||
+    connection?.tokenStatus === "reconnect_required"
+  );
 }
 
 /**
@@ -248,13 +451,19 @@ export async function handleOAuthCallback(
   const valid = await consumeOAuthState(state);
   if (!valid) throw new Error("Invalid or expired OAuth state");
 
-  const shortToken = await exchangeCodeForToken(
+  const shortGrant = await exchangeCodeForToken(
     code,
     callbackUrl,
     config.appId,
     config.appSecret,
   );
-  const longToken = await getLongLivedToken(shortToken, config.appId, config.appSecret);
+  const longGrant = await getLongLivedToken(
+    shortGrant.accessToken,
+    config.appId,
+    config.appSecret,
+    shortGrant.expiresAt,
+  );
+  const longToken = longGrant.accessToken;
 
   const me = await fetchMeAndAccounts(longToken);
   const pages: GraphPage[] = me.accounts?.data ?? [];
@@ -304,6 +513,7 @@ export async function handleOAuthCallback(
       })),
     ),
   );
+  const authorizationVersion = randomUUID();
 
   // 5. Enforce singleton connection at DB level
   // Check if a connection already exists for a *different* user
@@ -329,6 +539,10 @@ export async function handleOAuthCallback(
       encryptedLongLivedToken: encryptedUserToken,
       encryptedPageTokensJson,
       assetsJson: JSON.stringify(assets),
+      tokenStatus: "unknown",
+      tokenExpiresAt: longGrant.expiresAt,
+      tokenCheckedAt: null,
+      authorizationVersion,
     })
     .onConflictDoUpdate({
       target: metaConnectionsTable.metaUserId,
@@ -339,10 +553,17 @@ export async function handleOAuthCallback(
         encryptedLongLivedToken: encryptedUserToken,
         encryptedPageTokensJson,
         assetsJson: JSON.stringify(assets),
+        tokenStatus: "unknown",
+        tokenExpiresAt: longGrant.expiresAt,
+        tokenCheckedAt: null,
+        authorizationVersion,
         updatedAt: new Date(),
       },
     });
 
+  // Populate fresh health immediately. A temporary inspector failure leaves the
+  // safe state as unknown and never invalidates an otherwise successful login.
+  await getMetaTokenHealth(me.id);
   await createSession(res, me.id);
 }
 
@@ -821,40 +1042,47 @@ export async function syncGiveawayComments(
 
   let rawComments: RawComment[];
 
-  if (giveaway.postPlatform === "facebook") {
-    // May throw MetaPageCapError — caller must not persist partial data
-    const fbComments = await fetchAllFacebookComments(giveaway.postId, token);
-    rawComments = fbComments.map((c) => {
-      // Stable external user ID: prefer from.id, fall back to comment ID so the
-      // user is stable across syncs even without public author data.
-      const externalUserId = c.from?.id ?? `fb-comment:${c.id}`;
-      const displayName = c.from?.name ?? ANONYMOUS_DISPLAY_NAME;
-      return {
-        externalCommentId: c.id,
-        externalUserId,
-        displayName,
-        message: c.message,
-        profilePictureUrl: c.from?.picture?.data?.url ?? null,
-        commentedAt: new Date(c.created_time),
-      };
-    });
-  } else {
-    // May throw MetaPageCapError — caller must not persist partial data
-    const igComments = await fetchAllInstagramComments(giveaway.postId, token);
-    rawComments = igComments.map((c) => {
-      // Stable external user ID: prefer from.id (numeric IG user ID), fall back
-      // to username. The username is stable enough for IG giveaway counting.
-      const externalUserId = c.from?.id ?? c.username;
-      const displayName = c.from?.username ?? c.username ?? ANONYMOUS_DISPLAY_NAME;
-      return {
-        externalCommentId: c.id,
-        externalUserId,
-        displayName,
-        message: c.text,
-        profilePictureUrl: null, // IG comment API does not expose profile photos
-        commentedAt: new Date(c.timestamp),
-      };
-    });
+  try {
+    if (giveaway.postPlatform === "facebook") {
+      // May throw MetaPageCapError — caller must not persist partial data
+      const fbComments = await fetchAllFacebookComments(giveaway.postId, token);
+      rawComments = fbComments.map((c) => {
+        // Stable external user ID: prefer from.id, fall back to comment ID so the
+        // user is stable across syncs even without public author data.
+        const externalUserId = c.from?.id ?? `fb-comment:${c.id}`;
+        const displayName = c.from?.name ?? ANONYMOUS_DISPLAY_NAME;
+        return {
+          externalCommentId: c.id,
+          externalUserId,
+          displayName,
+          message: c.message,
+          profilePictureUrl: c.from?.picture?.data?.url ?? null,
+          commentedAt: new Date(c.created_time),
+        };
+      });
+    } else {
+      // May throw MetaPageCapError — caller must not persist partial data
+      const igComments = await fetchAllInstagramComments(giveaway.postId, token);
+      rawComments = igComments.map((c) => {
+        // Stable external user ID: prefer from.id (numeric IG user ID), fall back
+        // to username. The username is stable enough for IG giveaway counting.
+        const externalUserId = c.from?.id ?? c.username;
+        const displayName = c.from?.username ?? c.username ?? ANONYMOUS_DISPLAY_NAME;
+        return {
+          externalCommentId: c.id,
+          externalUserId,
+          displayName,
+          message: c.text,
+          profilePictureUrl: null, // IG comment API does not expose profile photos
+          commentedAt: new Date(c.timestamp),
+        };
+      });
+    }
+  } catch (err) {
+    if (err instanceof MetaAuthError || err instanceof MetaPermissionError) {
+      err.authorizationVersion = conn.authorizationVersion;
+    }
+    throw err;
   }
 
   // Deduplicate by external comment ID
@@ -1048,9 +1276,21 @@ export async function syncGiveawayWithLock(
       }
     }
   } catch (err) {
+    let shouldPersistError = true;
+    if (
+      (err instanceof MetaAuthError || err instanceof MetaPermissionError) &&
+      err.authorizationVersion
+    ) {
+      err.authorizationFailureIsCurrent =
+        await recordMetaAuthorizationFailure(
+          giveaway.metaUserId,
+          err.authorizationVersion,
+        );
+      shouldPersistError = err.authorizationFailureIsCurrent;
+    }
     // A lock/configuration conflict is expected retry behavior and must not
     // attach an error to a newly reconfigured giveaway.
-    if (!(err instanceof SyncLockConflictError)) {
+    if (!(err instanceof SyncLockConflictError) && shouldPersistError) {
       const safeMessage =
         err instanceof MetaPageCapError
           ? (err as MetaPageCapError).safeMessage
