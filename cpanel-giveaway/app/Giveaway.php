@@ -30,20 +30,17 @@ final class Giveaway
                 'identityCoverage' => self::emptyIdentityCoverage(),
             ];
         }
-        $statement = App::db()->prepare(
-            'SELECT * FROM participant_aggregates WHERE giveaway_id = ? ORDER BY rank_position ASC LIMIT 50'
-        );
+        $statement = App::db()->prepare(self::identifiedParticipantsSql());
         $statement->execute([$giveaway['id']]);
         $participants = [];
         foreach ($statement->fetchAll() as $row) {
-            $identityAvailable = !str_starts_with((string) $row['external_user_id'], 'anonymous:');
             $participants[] = [
                 'participantKey' => hash_hmac('sha256', $row['platform'] . '|' . $row['external_user_id'], App::key()),
                 'displayName' => $row['display_name'],
                 'profilePictureUrl' => $row['profile_picture_url'] ?: null,
                 'commentCount' => (int) $row['comment_count'],
-                'rank' => (int) $row['rank_position'],
-                'identityAvailable' => $identityAvailable,
+                'rank' => count($participants) + 1,
+                'identityAvailable' => true,
             ];
         }
         $identityCoverage = self::identityCoverage((string) $giveaway['id']);
@@ -64,6 +61,16 @@ final class Giveaway
             'identityCoverage' => $identityCoverage,
             'participants' => $participants,
         ];
+    }
+
+    private static function identifiedParticipantsSql(): string
+    {
+        return "SELECT *
+            FROM participant_aggregates
+            WHERE giveaway_id = ?
+              AND external_user_id NOT LIKE 'anonymous:%'
+            ORDER BY comment_count DESC, most_recent_comment_at DESC, external_user_id ASC
+            LIMIT 50";
     }
 
     public static function upsert(string $userId, array $input): array

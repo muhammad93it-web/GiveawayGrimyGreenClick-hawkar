@@ -98,4 +98,19 @@ $invalidImage = Meta::normalizeCommentItem([
 ], false);
 expect($invalidImage['profilePictureUrl'] === null, 'Unsafe profile-photo schemes must be rejected.');
 
+$projectionSqlMethod = new ReflectionMethod(Giveaway::class, 'identifiedParticipantsSql');
+$projectionSql = $projectionSqlMethod->invoke(null);
+expect(
+    str_contains($projectionSql, "external_user_id NOT LIKE 'anonymous:%'"),
+    'Participant projection must exclude anonymous rows before applying its limit.'
+);
+expect(
+    strpos($projectionSql, "external_user_id NOT LIKE 'anonymous:%'") < strpos($projectionSql, 'LIMIT 50'),
+    'Anonymous filtering must happen before the participant limit.'
+);
+expect(
+    str_contains($projectionSql, 'ORDER BY comment_count DESC'),
+    'Identified participants must be ranked by aggregated comment count.'
+);
+
 echo "comment identity tests passed\n";

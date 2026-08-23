@@ -36,7 +36,7 @@ final class View
         echo '<button id="save" class="button">پاشەکەوتکردن</button><button id="change" class="button danger hidden">گۆڕینی پۆست و دەستپێکردنەوە</button>';
         echo '<hr><button id="refresh-token" class="button secondary">نوێکردنەوەی مۆڵەتەکانی Meta</button><button id="disconnect" class="link danger-text">پچڕاندنی پەیوەندی Meta</button></article>';
         echo '<article class="card controls"><h2>کۆنتڕۆڵەکانی پەخش</h2><p>دۆخ: <strong id="status">دیارینەکراو</strong></p><div class="actions"><button id="start" class="button">دەستپێکردن</button><button id="pause" class="button secondary">وەستاندن</button><button id="complete" class="button warning">کۆتایی هێنان</button><button id="sync" class="button secondary">نوێکردنەوەی کۆمێنت</button></div><p id="sync-note" class="muted"></p></article>';
-        echo '<article class="card results"><div class="result-head"><h2>ڕیزبەندی</h2><span id="totals" class="badge">٠ کۆمێنت</span></div><p id="identity-note" class="identity-note hidden"></p><ol id="participants" class="ranking"></ol></article>';
+        echo '<article class="card results"><div class="result-head"><h2>ڕیزبەندیی ناسنامەدارەکان</h2><span id="totals" class="badge">٠ کۆمێنت</span></div><p id="identity-note" class="identity-note hidden"></p><ol id="participants" class="ranking"></ol></article>';
         echo '</section>';
         self::footer();
     }
@@ -44,7 +44,7 @@ final class View
     public static function live(): void
     {
         self::header('شاشەی ڕاستەوخۆ — گیادەرمانی سروشتی ڕانیە', 'live.js');
-        echo '<section id="live" class="live"><header class="live-head"><div class="brand"><img src="/assets/logo.png" alt="لۆگۆی گیادەرمانی سروشتی ڕانیە"><div><p class="eyebrow">گیادەرمانی سروشتی ڕانیە</p><h1 id="live-prize">خەریکی بارکردن...</h1></div></div><div id="live-status" class="badge">چاوەڕێبە</div></header><div id="live-totals" class="live-total"></div><p id="live-identity-note" class="identity-note hidden"></p><div id="podium" class="podium"></div><section class="live-list"><h2>ڕکابەرەکان</h2><ol id="live-participants" class="ranking"></ol></section></section>';
+        echo '<section id="live" class="live"><header class="live-head"><div class="brand"><img src="/assets/logo.png" alt="لۆگۆی گیادەرمانی سروشتی ڕانیە"><div><p class="eyebrow">گیادەرمانی سروشتی ڕانیە</p><h1 id="live-prize">خەریکی بارکردن...</h1></div></div><div id="live-status" class="badge">چاوەڕێبە</div></header><div id="live-totals" class="live-total"></div><p id="live-identity-note" class="identity-note hidden"></p><div id="podium" class="podium"></div><section class="live-list"><h2>ڕکابەرە ناسنامەدارەکان</h2><ol id="live-participants" class="ranking"></ol></section></section>';
         self::footer();
     }
 

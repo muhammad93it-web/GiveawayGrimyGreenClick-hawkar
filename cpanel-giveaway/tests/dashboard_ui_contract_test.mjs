@@ -169,18 +169,11 @@ await settle();
 
 assert.match(dashboard.elements.totals.textContent, /5 کۆمێنت/);
 assert.match(dashboard.elements.totals.textContent, /1 بەشداربووی ناسنامەدار/);
-assert.match(dashboard.elements.totals.textContent, /3 بێ ناسنامە/);
-assert.match(dashboard.elements["identity-note"].textContent, /ناسنامەی 3 کۆمێنتی نەداوە/);
-assert.equal(dashboard.elements.participants.children.length, 4);
+assert.doesNotMatch(dashboard.elements.totals.textContent, /بێ ناسنامە/);
+assert.match(dashboard.elements["identity-note"].textContent, /3 کۆمێنتی دیکە لە پۆدیۆم و ڕیزبەندی دانەنراون/);
+assert.equal(dashboard.elements.participants.children.length, 1);
 assert.equal(dashboard.elements.participants.children[0].children[3].textContent, 2);
-assert.match(
-  dashboard.elements.participants.children[1].children[2].textContent,
-  /ناسنامەی جێگیری نەداوە/,
-);
-assert.match(
-  dashboard.elements.participants.children[2].children[2].textContent,
-  /بێ ناو — Meta ناسنامەی جێگیری نەداوە/,
-);
+assert.equal(dashboard.elements.participants.children[0].children[2].textContent, "بەشداربووی ناسنامەدار");
 
 const liveIds = [
   "live-prize", "live-status", "live-totals", "live-identity-note", "podium",
@@ -195,11 +188,29 @@ await settle();
 
 assert.match(live.elements["live-totals"].textContent, /5 کۆی کۆمێنتەکان/);
 assert.match(live.elements["live-totals"].textContent, /1 بەشداربووی ناسنامەدار/);
-assert.match(live.elements["live-identity-note"].textContent, /ناسنامەی 3 لە 5 کۆمێنت نەداوە/);
-assert.equal(live.elements.podium.children.length, 2);
+assert.match(live.elements["live-identity-note"].textContent, /کۆمێنتە بێ ناسنامەکان لە پۆدیۆم دانەنراون/);
+assert.equal(live.elements.podium.children.length, 1);
+assert.equal(live.elements.podium.children[0].children[1].textContent, "بەشداربووی ناسنامەدار");
+
+giveawayFixture.identityCoverage = {
+  identifiedComments: 0,
+  anonymousComments: 5,
+  identifiedParticipants: 0,
+  anonymousEntries: 5,
+};
+giveawayFixture.participants = giveawayFixture.participants.filter(participant => !participant.identityAvailable);
+const anonymousLive = createContext(liveIds);
+vm.runInContext(
+  fs.readFileSync(new URL("../public/assets/live.js", import.meta.url), "utf8"),
+  anonymousLive.context,
+);
+await settle();
+
+assert.equal(anonymousLive.elements.podium.children.length, 0);
+assert.equal(anonymousLive.elements["live-participants"].children.length, 1);
 assert.match(
-  live.elements.podium.children[0].children[1].textContent,
-  /ناسنامەی جێگیری نەداوە/,
+  anonymousLive.elements["live-participants"].children[0].textContent,
+  /براوە دیاری ناکرێت/,
 );
 
 console.log("dashboard and live UI contract tests passed");
