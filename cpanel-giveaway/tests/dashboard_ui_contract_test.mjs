@@ -190,7 +190,7 @@ assert.match(live.elements["live-totals"].textContent, /5 کۆی کۆمێنتە�
 assert.match(live.elements["live-totals"].textContent, /1 بەشداربووی ناسنامەدار/);
 assert.match(live.elements["live-identity-note"].textContent, /کۆمێنتە بێ ناسنامەکان لە پۆدیۆم دانەنراون/);
 assert.equal(live.elements.podium.children.length, 1);
-assert.equal(live.elements.podium.children[0].children[1].textContent, "بەشداربووی ناسنامەدار");
+assert.equal(live.elements.podium.children[0].children[1].textContent, "بەشداربووی ناسنامەدار · 2 کۆمێنت");
 
 giveawayFixture.identityCoverage = {
   identifiedComments: 0,
