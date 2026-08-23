@@ -308,3 +308,17 @@ mtime_ms = 1787494033768
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/12ef98fd-5f1e-4763-9adf-2c80e860eb6c/c78fb788-eb1b-4ff0-8227-68251b442448"
 storage_version_token = "1787494987737943"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "Hn7b6nMRmey9fy9AKSHWo"
+uri = "file://.agents/outputs/gyadarmany-ranya-php-mysql-cpanel-v1.1.zip"
+type = "unspecified"
+title = "گیادەرمانی سروشتی ڕانیە — PHP/MySQL — وەشانی ١.١.٠"
+description = "پەکێجی نوێکردنەوەی cPanel: ژماردن و نیشاندانی دروستی کۆمێنتنووسان، ڕوونکردنەوەی کۆمێنتی بێ ناسنامەی Meta، و ڕێنمایی نوێکردنەوە. config.php و هیچ نهێنییەک لە ناویدا نییە."
+logical_id = "37941533-67ad-4d10-82d2-6b7552d2e632"
+content_hash = "sha256:7da5a801432c96ae5c4036aa5e9c9c780d81859d56897b97efb29c19e1b06ad1"
+size = 164225
+mtime_ms = 1787503823364
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/37941533-67ad-4d10-82d2-6b7552d2e632/4513b4e3-846a-4560-ac6d-a62bbba2fc03"
+storage_version_token = "1787503949786340"
+content_type = "application/octet-stream"
