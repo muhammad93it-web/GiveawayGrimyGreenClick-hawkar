@@ -1,8 +1,18 @@
 import { type ReactNode } from 'react';
 import React from 'react';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Dashboard from '@/pages/dashboard';
 import LiveView from '@/pages/live';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 class ErrorBoundary extends React.Component<{children: ReactNode, resetKey: any}, {hasError: boolean}> {
   state = { hasError: false };
@@ -61,9 +71,11 @@ function Router() {
 
 function App() {
   return (
-    <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-      <Router />
-    </WouterRouter>
+    <QueryClientProvider client={queryClient}>
+      <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+        <Router />
+      </WouterRouter>
+    </QueryClientProvider>
   );
 }
 

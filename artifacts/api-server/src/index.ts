@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { startBackgroundWorker } from "./lib/backgroundWorker";
 
 const rawPort = process.env["PORT"];
 
@@ -22,4 +23,8 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+
+  // Start the background sync worker exactly once after the server is ready.
+  // The worker uses unref'd setInterval so it won't prevent process exit.
+  startBackgroundWorker();
 });

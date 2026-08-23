@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: meta
+    description: Meta (Facebook/Instagram) integration
+  - name: giveaways
+    description: Giveaway management
 paths:
   /healthz:
     get:
@@ -24,7 +28,323 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /meta/status:
+    get:
+      operationId: getMetaStatus
+      tags: [meta]
+      summary: Get Meta integration status
+      description: Returns whether Meta credentials are configured, connection status, admin name, and callback URL. Also sets CSRF token cookie.
+      responses:
+        "200":
+          description: Meta status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetaStatus"
+
+  /meta/login:
+    get:
+      operationId: metaLogin
+      tags: [meta]
+      summary: Initiate Meta OAuth login
+      description: Redirects to Meta OAuth authorization page. Returns 503 if Meta credentials are not configured.
+      responses:
+        "302":
+          description: Redirect to Meta OAuth
+          headers:
+            Location:
+              schema:
+                type: string
+        "503":
+          description: Meta credentials not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /meta/callback:
+    get:
+      operationId: metaCallback
+      tags: [meta]
+      summary: Meta OAuth callback
+      description: Handles OAuth callback from Meta. Redirects to frontend with meta=connected or meta=error query param.
+      parameters:
+        - name: code
+          in: query
+          schema:
+            type: string
+        - name: state
+          in: query
+          schema:
+            type: string
+        - name: error
+          in: query
+          schema:
+            type: string
+        - name: error_description
+          in: query
+          schema:
+            type: string
+      responses:
+        "302":
+          description: Redirect to frontend with meta=connected or meta=error
+          headers:
+            Location:
+              schema:
+                type: string
+
+  /meta/disconnect:
+    post:
+      operationId: metaDisconnect
+      tags: [meta]
+      summary: Disconnect Meta integration
+      description: Removes Meta connection and all associated data. Requires authentication and CSRF token.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Disconnected successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: CSRF token invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /meta/assets:
+    get:
+      operationId: listMetaAssets
+      tags: [meta]
+      summary: List Meta assets
+      description: Returns owned Facebook Pages and connected Instagram professional accounts.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: List of Meta assets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MetaAsset"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /meta/assets/{assetId}/posts:
+    get:
+      operationId: listMetaAssetPosts
+      tags: [meta]
+      summary: List posts for a Meta asset
+      description: Returns recent posts/media for a Facebook Page or Instagram account.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MetaPost"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Asset not owned by this connection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Asset not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /giveaways/current:
+    get:
+      operationId: getCurrentGiveaway
+      tags: [giveaways]
+      summary: Get current giveaway projection (public)
+      description: Returns the singleton giveaway projection. Returns empty state when none exists.
+      responses:
+        "200":
+          description: Current giveaway or empty state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GiveawayProjection"
+    put:
+      operationId: putCurrentGiveaway
+      tags: [giveaways]
+      summary: Set current giveaway
+      description: Select owned platform asset/post and configure prize. Requires authentication and CSRF token.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GiveawayInput"
+      responses:
+        "200":
+          description: Updated giveaway
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GiveawayProjection"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: CSRF token invalid or asset not owned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: A comment sync is currently holding the giveaway lease
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /giveaways/current/status:
+    patch:
+      operationId: patchGiveawayStatus
+      tags: [giveaways]
+      summary: Update giveaway status
+      description: Transition giveaway status. Completing a giveaway requires a final Meta sync. Requires authentication and CSRF token.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GiveawayStatusUpdate"
+      responses:
+        "200":
+          description: Updated giveaway
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GiveawayProjection"
+        "400":
+          description: Invalid status or no active giveaway
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: CSRF token invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Another sync is already in progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "502":
+          description: Final sync failed before completing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /giveaways/current/sync:
+    post:
+      operationId: syncGiveaway
+      tags: [giveaways]
+      summary: Sync giveaway comments
+      description: Pull all comments from Meta for the selected post and return updated projection. Requires authentication and CSRF token.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Updated giveaway projection after sync
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GiveawayProjection"
+        "400":
+          description: No active giveaway or post selected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: CSRF token invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Another sync is already in progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
 components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: sid
+
   schemas:
     HealthStatus:
       type: object
@@ -34,3 +354,180 @@ components:
       required:
         - status
 
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    SuccessResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+      required:
+        - ok
+
+    MetaStatus:
+      type: object
+      properties:
+        configured:
+          type: boolean
+        connected:
+          type: boolean
+        adminName:
+          type: ["string", "null"]
+        callbackUrl:
+          type: string
+        csrfToken:
+          type: ["string", "null"]
+      required:
+        - configured
+        - connected
+        - adminName
+        - callbackUrl
+        - csrfToken
+
+    MetaAsset:
+      type: object
+      properties:
+        id:
+          type: string
+        platform:
+          type: string
+          enum: [facebook, instagram]
+        name:
+          type: string
+        pictureUrl:
+          type: ["string", "null"]
+      required:
+        - id
+        - platform
+        - name
+        - pictureUrl
+
+    MetaPost:
+      type: object
+      properties:
+        id:
+          type: string
+        platform:
+          type: string
+          enum: [facebook, instagram]
+        message:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        permalinkUrl:
+          type: ["string", "null"]
+        thumbnailUrl:
+          type: ["string", "null"]
+      required:
+        - id
+        - platform
+        - message
+        - createdAt
+        - permalinkUrl
+        - thumbnailUrl
+
+    GiveawayParticipant:
+      type: object
+      properties:
+        participantKey:
+          type: string
+          description: Opaque stable public key derived server-side with HMAC-SHA256 from giveaway ID + platform + external user ID. Never exposes the raw external user ID.
+        platform:
+          type: string
+          enum: [facebook, instagram]
+        displayName:
+          type: string
+        commentCount:
+          type: integer
+        rank:
+          type: integer
+        profilePictureUrl:
+          type: ["string", "null"]
+      required:
+        - participantKey
+        - platform
+        - displayName
+        - commentCount
+        - rank
+        - profilePictureUrl
+
+    GiveawayProjection:
+      type: object
+      properties:
+        exists:
+          type: boolean
+        status:
+          type: ["string", "null"]
+          enum: [idle, running, paused, completed, null]
+        prizeCount:
+          type: ["integer", "null"]
+        prizeTitle:
+          type: ["string", "null"]
+        postId:
+          type: ["string", "null"]
+        postPlatform:
+          type: ["string", "null"]
+          enum: [facebook, instagram, null]
+        postMessage:
+          type: ["string", "null"]
+        totalComments:
+          type: ["integer", "null"]
+        totalParticipants:
+          type: ["integer", "null"]
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/GiveawayParticipant"
+        lastSyncedAt:
+          type: ["string", "null"]
+        lastError:
+          type: ["string", "null"]
+        updatedAt:
+          type: ["string", "null"]
+      required:
+        - exists
+        - status
+        - prizeCount
+        - prizeTitle
+        - postId
+        - postPlatform
+        - postMessage
+        - totalComments
+        - totalParticipants
+        - participants
+        - lastSyncedAt
+        - lastError
+        - updatedAt
+
+    GiveawayInput:
+      type: object
+      properties:
+        assetId:
+          type: string
+        postId:
+          type: string
+        prizeCount:
+          type: integer
+          minimum: 1
+        prizeTitle:
+          type: string
+      required:
+        - assetId
+        - postId
+        - prizeCount
+        - prizeTitle
+
+    GiveawayStatusUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [idle, running, paused, completed]
+      required:
+        - status
