@@ -1,0 +1,1 @@
+- [Meta comment author privacy](meta-comment-author-privacy.md) — Treat an absent Graph `from` object as authoritative; keep anonymous fallbacks and never infer or scrape identities.
