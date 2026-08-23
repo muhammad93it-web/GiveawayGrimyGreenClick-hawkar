@@ -4,6 +4,7 @@ import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Dashboard from '@/pages/dashboard';
 import LiveView from '@/pages/live';
+import PrivacyPolicy from '@/pages/privacy';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -59,6 +60,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Dashboard} />
         <Route path="/live" component={LiveView} />
+        <Route path="/privacy" component={PrivacyPolicy} />
         <Route component={() => (
           <div dir="rtl" className="flex h-screen items-center justify-center font-bold text-2xl text-muted-foreground">
             ٤٠٤ - پەڕەکە نەدۆزرایەوە
