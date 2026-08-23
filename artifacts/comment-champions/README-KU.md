@@ -140,6 +140,7 @@ https://your-domain.com/api/meta/callback
    - `pages_manage_engagement` تەنها ئەگەر دەتەوێت کۆمێنت وەڵام بدەیت، بشاریتەوە یان بەڕێوەی ببەیت
    - `instagram_basic`
    - `instagram_manage_comments` تەنها ئەگەر کارکردن لەگەڵ کۆمێنتی ئینستاگرام پێویست بێت
+   - `pages_read_user_engagement` بۆ ئەوەی Meta خانەی `from` ـی کۆمێنت، واتە ناو و Page-scoped ID ـی کۆمێنتنووس، بگەڕێنێتەوە. ئەگەر ئەم مۆڵەتە لە token ـدا نەبێت، ژماردن کار دەکات بەڵام ناوەکان وەک «بێ ناو» دەردەکەون.
 9. لە کاتی development، تەنها تۆ و ئەو test user ـانەی لە Roles زیادکراون دەستگەیشتن دەبینن. بۆ بەکارهێنەرانی دیکە، پێویستە Meta App Review داواکاری بکەیت و بەکارهێنانی هەر مۆڵەتێک ڕوون بکەیتەوە.
 10. **App Secret** و access token ـەکانت هەرگیز لە frontend، GitHub، یان چاتدا مەخە. تەنها لە environment variables ـی سێرڤەر هەڵیانبگرە.
 

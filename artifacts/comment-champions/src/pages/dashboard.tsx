@@ -371,11 +371,24 @@ export default function Dashboard() {
                     </Button>
                   )}
 
-                  <div className="pt-4 border-t mt-4">
-                     <Button variant="ghost" onClick={handleDisconnect} disabled={!canMutate || disconnectMeta.isPending} className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive">
-                       <LogOut className="w-4 h-4 ml-2" />
-                       پچڕاندنی پەیوەندی مێتا
-                     </Button>
+                  <div className="pt-4 border-t mt-4 space-y-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        window.location.href = '/api/meta/login';
+                      }}
+                      className="w-full gap-2"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      نوێکردنەوەی مۆڵەتەکانی مێتا
+                    </Button>
+                    <p className="text-xs text-muted-foreground leading-5">
+                      بۆ وەرگرتنی ناو و ناسنامەی کۆمێنتنووسان؛ خەڵات و ڕیزبەندییەکەت ناسڕێتەوە.
+                    </p>
+                    <Button variant="ghost" onClick={handleDisconnect} disabled={!canMutate || disconnectMeta.isPending} className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive">
+                      <LogOut className="w-4 h-4 ml-2" />
+                      پچڕاندنی پەیوەندی مێتا
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

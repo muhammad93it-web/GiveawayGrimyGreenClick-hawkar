@@ -101,7 +101,9 @@ export function getFrontendBase(req: {
 const OAUTH_SCOPES = [
   "pages_show_list",
   "pages_read_engagement",
-  "pages_read_user_content",
+  // Required by the current Pages API comments guide for the comment author's
+  // Page-scoped ID and name in the `from` field.
+  "pages_read_user_engagement",
   "instagram_basic",
   "instagram_manage_comments",
 ].join(",");
