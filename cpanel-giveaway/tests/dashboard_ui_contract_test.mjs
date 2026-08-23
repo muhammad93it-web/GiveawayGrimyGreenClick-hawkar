@@ -1,0 +1,205 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import vm from "node:vm";
+
+class Element {
+  constructor(tagName = "div", id = "") {
+    this.tagName = tagName;
+    this.id = id;
+    this.textContent = "";
+    this.className = "";
+    this.value = "";
+    this.disabled = false;
+    this.children = [];
+    const classes = new Set();
+    this.classList = {
+      add: (...names) => names.forEach(name => classes.add(name)),
+      remove: (...names) => names.forEach(name => classes.delete(name)),
+      contains: name => classes.has(name),
+    };
+  }
+
+  append(...children) {
+    this.children.push(...children);
+  }
+
+  replaceChildren(...children) {
+    this.children = [...children];
+  }
+
+  add(child) {
+    this.children.push(child);
+  }
+
+  addEventListener() {}
+
+  remove() {
+    this.removed = true;
+  }
+}
+
+class OptionElement extends Element {
+  constructor(text = "", value = "") {
+    super("option");
+    this.textContent = text;
+    this.value = value;
+  }
+}
+
+const giveawayFixture = {
+  exists: true,
+  id: "giveaway-fixture",
+  status: "running",
+  assetId: "page-1",
+  postId: "post-1",
+  postPlatform: "facebook",
+  prizeCount: 2,
+  prizeTitle: "خەڵاتی تاقیکردنەوە",
+  totalComments: 5,
+  totalParticipants: 4,
+  lastSyncedAt: "2026-08-23T12:05:00+00:00",
+  lastError: null,
+  identityCoverage: {
+    identifiedComments: 2,
+    anonymousComments: 3,
+    identifiedParticipants: 1,
+    anonymousEntries: 3,
+  },
+  participants: [
+    {
+      participantKey: "identified-fixture",
+      displayName: "بەشداربووی ناسنامەدار",
+      profilePictureUrl: null,
+      commentCount: 2,
+      rank: 1,
+      identityAvailable: true,
+    },
+    {
+      participantKey: "anonymous-named-fixture",
+      displayName: "ناوی گەڕاوەوە بەبێ ناسنامە",
+      profilePictureUrl: null,
+      commentCount: 1,
+      rank: 2,
+      identityAvailable: false,
+    },
+    {
+      participantKey: "anonymous-fixture-2",
+      displayName: "بێ ناو",
+      profilePictureUrl: null,
+      commentCount: 1,
+      rank: 3,
+      identityAvailable: false,
+    },
+    {
+      participantKey: "anonymous-fixture-3",
+      displayName: "بێ ناو",
+      profilePictureUrl: null,
+      commentCount: 1,
+      rank: 4,
+      identityAvailable: false,
+    },
+  ],
+};
+
+const apiResponse = url => {
+  if (url === "/api/meta/status") {
+    return {
+      configured: true,
+      connected: true,
+      csrfToken: "fixture-token",
+      adminName: "بەڕێوەبەری تاقیکردنەوە",
+      tokenStatus: "active",
+      callbackUrl: "https://giveaway.example.com/api/meta/callback",
+    };
+  }
+  if (url === "/api/meta/assets") {
+    return [{ id: "page-1", name: "پەیجی تاقیکردنەوە", platform: "facebook" }];
+  }
+  if (url.includes("/posts")) {
+    return [{ id: "post-1", message: "پۆستی تاقیکردنەوە", createdAt: "2026-08-23T12:00:00+00:00" }];
+  }
+  if (url === "/api/giveaways/current") {
+    return giveawayFixture;
+  }
+  throw new Error(`Unexpected fixture request: ${url}`);
+};
+
+const createContext = ids => {
+  const elements = Object.fromEntries(ids.map(id => [id, new Element("div", id)]));
+  const document = {
+    hidden: false,
+    getElementById: id => elements[id] ?? (elements[id] = new Element("div", id)),
+    createElement: tagName => new Element(tagName),
+  };
+  const context = vm.createContext({
+    console,
+    Date,
+    document,
+    Option: OptionElement,
+    confirm: () => true,
+    location: { href: "" },
+    setInterval: () => 1,
+    clearInterval: () => {},
+    setTimeout,
+    fetch: async url => ({
+      ok: true,
+      json: async () => structuredClone(apiResponse(url)),
+    }),
+  });
+  return { context, elements };
+};
+
+const settle = async () => {
+  await new Promise(resolve => setTimeout(resolve, 0));
+  await new Promise(resolve => setTimeout(resolve, 0));
+};
+
+const dashboardIds = [
+  "notice", "setup-card", "app-card", "callback", "admin-name", "asset", "post",
+  "prize-title", "prize-count", "status", "totals", "identity-note", "participants",
+  "sync-note", "save", "change", "start", "pause", "complete", "sync", "disconnect",
+  "refresh-token",
+];
+const dashboard = createContext(dashboardIds);
+vm.runInContext(
+  fs.readFileSync(new URL("../public/assets/dashboard.js", import.meta.url), "utf8"),
+  dashboard.context,
+);
+await settle();
+
+assert.match(dashboard.elements.totals.textContent, /5 کۆمێنت/);
+assert.match(dashboard.elements.totals.textContent, /1 بەشداربووی ناسنامەدار/);
+assert.match(dashboard.elements.totals.textContent, /3 بێ ناسنامە/);
+assert.match(dashboard.elements["identity-note"].textContent, /ناسنامەی 3 کۆمێنتی نەداوە/);
+assert.equal(dashboard.elements.participants.children.length, 4);
+assert.equal(dashboard.elements.participants.children[0].children[3].textContent, 2);
+assert.match(
+  dashboard.elements.participants.children[1].children[2].textContent,
+  /ناسنامەی جێگیری نەداوە/,
+);
+assert.match(
+  dashboard.elements.participants.children[2].children[2].textContent,
+  /بێ ناو — Meta ناسنامەی جێگیری نەداوە/,
+);
+
+const liveIds = [
+  "live-prize", "live-status", "live-totals", "live-identity-note", "podium",
+  "live-participants",
+];
+const live = createContext(liveIds);
+vm.runInContext(
+  fs.readFileSync(new URL("../public/assets/live.js", import.meta.url), "utf8"),
+  live.context,
+);
+await settle();
+
+assert.match(live.elements["live-totals"].textContent, /5 کۆی کۆمێنتەکان/);
+assert.match(live.elements["live-totals"].textContent, /1 بەشداربووی ناسنامەدار/);
+assert.match(live.elements["live-identity-note"].textContent, /ناسنامەی 3 لە 5 کۆمێنت نەداوە/);
+assert.equal(live.elements.podium.children.length, 2);
+assert.match(
+  live.elements.podium.children[0].children[1].textContent,
+  /ناسنامەی جێگیری نەداوە/,
+);
+
+console.log("dashboard and live UI contract tests passed");

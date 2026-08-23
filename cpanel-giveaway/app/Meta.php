@@ -96,6 +96,7 @@ final class Graph
 final class Meta
 {
     private const SCOPES = 'pages_show_list,pages_read_engagement,pages_read_user_content,instagram_basic,instagram_manage_comments';
+    private const ANONYMOUS_DISPLAY_NAME = 'بێ ناو';
 
     public static function configured(): bool
     {
@@ -406,27 +407,13 @@ final class Meta
         $comments = [];
         for ($pages = 0; $pages < 50; $pages++) {
             foreach (($page['data'] ?? []) as $item) {
-                $id = (string) ($item['id'] ?? '');
-                if ($id === '') {
+                if (!is_array($item)) {
                     continue;
                 }
-                $from = is_array($item['from'] ?? null) ? $item['from'] : null;
-                $externalId = $from['id'] ?? ('anonymous:' . $id);
-                $displayName = $isInstagram
-                    ? (string) ($from['username'] ?? $item['username'] ?? 'بێ ناو')
-                    : (string) ($from['name'] ?? 'بێ ناو');
-                $picture = (!$isInstagram && isset($from['picture']['data']['url'])) ? $from['picture']['data']['url'] : null;
-                $time = $isInstagram ? ($item['timestamp'] ?? '') : ($item['created_time'] ?? '');
-                $parsed = strtotime((string) $time);
-                $comments[] = [
-                    'externalCommentId' => $id,
-                    'platform' => $isInstagram ? 'instagram' : 'facebook',
-                    'externalUserId' => (string) $externalId,
-                    'displayName' => $displayName,
-                    'profilePictureUrl' => is_string($picture) ? $picture : null,
-                    'text' => (string) ($isInstagram ? ($item['text'] ?? '') : ($item['message'] ?? '')),
-                    'commentedAt' => $parsed === false ? gmdate('Y-m-d H:i:s') : gmdate('Y-m-d H:i:s', $parsed),
-                ];
+                $comment = self::normalizeCommentItem($item, $isInstagram);
+                if ($comment !== null) {
+                    $comments[] = $comment;
+                }
             }
             $next = $page['paging']['next'] ?? null;
             if (!is_string($next) || $next === '') {
@@ -438,6 +425,71 @@ final class Meta
             $page = Graph::next($next, $token);
         }
         return $comments;
+    }
+
+    /**
+     * Normalize one Graph comment without inventing an author identity.
+     *
+     * This method is public so the privacy and aggregation behavior can be
+     * covered by a small, dependency-free regression test.
+     */
+    public static function normalizeCommentItem(array $item, bool $isInstagram): ?array
+    {
+        $id = self::nonEmptyString($item['id'] ?? null);
+        if ($id === null) {
+            return null;
+        }
+
+        $from = is_array($item['from'] ?? null) ? $item['from'] : null;
+        $authorId = self::nonEmptyString($from['id'] ?? null);
+        $externalId = $authorId ?? ('anonymous:' . $id);
+
+        $displayName = $isInstagram
+            ? self::nonEmptyString($from['username'] ?? ($item['username'] ?? null))
+            : self::nonEmptyString($from['name'] ?? null);
+        $displayName ??= self::ANONYMOUS_DISPLAY_NAME;
+
+        $picture = null;
+        if ($from !== null) {
+            $nestedPicture = is_array($from['picture'] ?? null) ? $from['picture'] : [];
+            $pictureData = is_array($nestedPicture['data'] ?? null) ? $nestedPicture['data'] : [];
+            $picture = self::safeImageUrl($pictureData['url'] ?? ($nestedPicture['url'] ?? null));
+            // Some legitimate Meta payloads can already include this field,
+            // even though the current IG comment edge does not document it.
+            $picture ??= self::safeImageUrl($from['profile_picture_url'] ?? null);
+        }
+
+        $time = $isInstagram ? ($item['timestamp'] ?? '') : ($item['created_time'] ?? '');
+        $parsed = strtotime((string) $time);
+
+        return [
+            'externalCommentId' => $id,
+            'platform' => $isInstagram ? 'instagram' : 'facebook',
+            'externalUserId' => $externalId,
+            'displayName' => $displayName,
+            'profilePictureUrl' => $picture,
+            'text' => trim((string) ($isInstagram ? ($item['text'] ?? '') : ($item['message'] ?? ''))),
+            'commentedAt' => $parsed === false ? gmdate('Y-m-d H:i:s') : gmdate('Y-m-d H:i:s', $parsed),
+        ];
+    }
+
+    private static function nonEmptyString(mixed $value): ?string
+    {
+        if (!is_string($value) && !is_int($value)) {
+            return null;
+        }
+        $value = trim((string) $value);
+        return $value === '' ? null : $value;
+    }
+
+    private static function safeImageUrl(mixed $value): ?string
+    {
+        $url = self::nonEmptyString($value);
+        if ($url === null) {
+            return null;
+        }
+        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+        return in_array($scheme, ['http', 'https'], true) ? $url : null;
     }
 
     public static function markReconnectIfCurrent(array $connection): void
