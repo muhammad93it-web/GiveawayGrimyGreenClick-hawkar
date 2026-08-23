@@ -60,6 +60,14 @@ export function getMetaConfig(): MetaConfig | null {
 }
 
 /**
+ * Returns the dedicated Meta webhook verify token, when configured.
+ * This is intentionally separate from the Meta app secret because it is
+ * entered in Meta's callback configuration and may be rotated independently.
+ */
+export function getMetaWebhookVerifyToken(): string | null {
+  return process.env.META_WEBHOOK_VERIFY_TOKEN ?? null;
+}
+/**
  * Compute the OAuth callback / redirect URI.
  *
  * Priority:
@@ -459,6 +467,26 @@ export async function getCurrentGiveaway(metaUserId: string) {
   return giveaway ?? null;
 }
 
+/**
+ * Finds the only giveaway a Page comment webhook is permitted to trigger.
+ * The caller must already have verified the webhook's HMAC and allowed Page.
+ */
+export async function getRunningFacebookGiveawayForWebhook(
+  pageId: string,
+) {
+  const [giveaway] = await db
+    .select()
+    .from(giveawaysTable)
+    .where(
+      and(
+        eq(giveawaysTable.assetId, pageId),
+        eq(giveawaysTable.postPlatform, "facebook"),
+        eq(giveawaysTable.status, "running"),
+      ),
+    )
+    .limit(1);
+  return giveaway ?? null;
+}
 /**
  * Get the public current giveaway scoped to the singleton Meta connection.
  * Never returns a global latest across users — only the singleton tenant's

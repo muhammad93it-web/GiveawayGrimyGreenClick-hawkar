@@ -1,4 +1,5 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request } from "express";
+import { createHash, createHmac } from "crypto";
 import { db } from "@workspace/db";
 import { metaConnectionsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
@@ -11,6 +12,7 @@ import {
 } from "../../lib/session";
 import {
   getMetaConfig,
+  getMetaWebhookVerifyToken,
   getCallbackUrl,
   getFrontendBase,
   buildOAuthUrl,
@@ -24,6 +26,7 @@ import {
   MetaGraphError,
   MetaPageNotAllowedError,
   MetaConnectionConflictError,
+  getRunningFacebookGiveawayForWebhook,
 } from "../../lib/metaService";
 import {
   GetMetaStatusResponse,
@@ -33,6 +36,7 @@ import {
   MetaDisconnectResponse,
 } from "@workspace/api-zod";
 import { safeEqual } from "../../lib/crypto";
+import { queueWebhookSync } from "../../lib/backgroundWorker";
 
 /**
  * Cookie name for the short-lived OAuth state.
@@ -43,6 +47,152 @@ const OAUTH_STATE_COOKIE = "oauth_state";
 const OAUTH_STATE_COOKIE_MAX_AGE = 10 * 60;
 
 const router: IRouter = Router();
+
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function getQueryValue(req: Request, name: string): string | null {
+  const value = req.query[name];
+  return typeof value === "string" ? value : null;
+}
+
+function hasValidMetaSignature(req: Request, appSecret: string): boolean {
+  const signature = req.get("x-hub-signature-256");
+  if (!signature || !/^sha256=[a-f0-9]{64}$/.test(signature)) return false;
+  if (!Buffer.isBuffer(req.body)) return false;
+
+  const expected = `sha256=${createHmac("sha256", appSecret)
+    .update(req.body)
+    .digest("hex")}`;
+  return safeEqual(signature, expected);
+}
+
+/**
+ * Extract only Page feed notifications for newly added top-level comments.
+ * All shape checks are defensive because even a valid Meta event may refer to
+ * unrelated Page activity.
+ */
+function getNewCommentEvents(
+  payload: unknown,
+  allowedPageId: string,
+): Array<{ pageId: string; postId: string; eventKey: string }> {
+  if (!isRecord(payload) || payload.object !== "page" || !Array.isArray(payload.entry)) {
+    return [];
+  }
+
+  const events: Array<{ pageId: string; postId: string; eventKey: string }> = [];
+  for (const entry of payload.entry) {
+    if (!isRecord(entry) || entry.id !== allowedPageId || !Array.isArray(entry.changes)) {
+      continue;
+    }
+
+    for (const change of entry.changes) {
+      if (!isRecord(change) || change.field !== "feed" || !isRecord(change.value)) {
+        continue;
+      }
+      const value = change.value;
+      if (
+        value.item !== "comment" ||
+        value.verb !== "add" ||
+        typeof value.post_id !== "string" ||
+        typeof value.comment_id !== "string"
+      ) {
+        continue;
+      }
+      events.push({
+        pageId: allowedPageId,
+        postId: value.post_id,
+        // A comment ID is Meta's stable delivery identity for new-comment feed events.
+        eventKey: `page-comment:${allowedPageId}:${value.post_id}:${value.comment_id}`,
+      });
+    }
+  }
+  return events;
+}
+
+/**
+ * GET /meta/webhook
+ * Meta callback handshake. The verify token is never echoed or logged.
+ */
+router.get("/meta/webhook", (req, res): void => {
+  const verifyToken = getMetaWebhookVerifyToken();
+  if (!verifyToken) {
+    req.log.warn("Meta webhook verify token is not configured");
+    res.sendStatus(503);
+    return;
+  }
+
+  const mode = getQueryValue(req, "hub.mode");
+  const suppliedToken = getQueryValue(req, "hub.verify_token");
+  const challenge = getQueryValue(req, "hub.challenge");
+  if (
+    mode !== "subscribe" ||
+    !suppliedToken ||
+    !safeEqual(suppliedToken, verifyToken) ||
+    !challenge
+  ) {
+    req.log.warn({ errorKind: "webhook_challenge_rejected" }, "Meta webhook challenge rejected");
+    res.sendStatus(403);
+    return;
+  }
+
+  res.type("text/plain").status(200).send(challenge);
+});
+
+/**
+ * POST /meta/webhook
+ * Verifies Meta's raw-body HMAC, then schedules a lock-protected comment pull.
+ * The acknowledgement never waits on Meta Graph pagination.
+ */
+router.post("/meta/webhook", async (req, res): Promise<void> => {
+  const config = getMetaConfig();
+  if (!config) {
+    req.log.warn("Meta webhook received while Meta configuration is unavailable");
+    res.sendStatus(503);
+    return;
+  }
+  if (!hasValidMetaSignature(req, config.appSecret)) {
+    req.log.warn({ errorKind: "webhook_signature_rejected" }, "Meta webhook signature rejected");
+    res.sendStatus(401);
+    return;
+  }
+
+  let payload: unknown;
+  try {
+    payload = JSON.parse(req.body.toString("utf8")) as unknown;
+  } catch {
+    req.log.warn({ errorKind: "webhook_invalid_json" }, "Meta webhook body was not valid JSON");
+    res.sendStatus(400);
+    return;
+  }
+
+  const events = getNewCommentEvents(payload, config.allowedPageId);
+  if (events.length > 0) {
+    // One bounded lookup per delivery, regardless of how many changes Meta
+    // batches into the payload.
+    const giveaway = await getRunningFacebookGiveawayForWebhook(
+      config.allowedPageId,
+    );
+    if (giveaway?.postId) {
+      const eventKeys = events
+        .filter((event) => event.postId === giveaway.postId)
+        .map((event) => event.eventKey);
+      if (eventKeys.length > 0) {
+        const batchKey = createHash("sha256")
+          .update([...new Set(eventKeys)].sort().join("\n"))
+          .digest("hex");
+        queueWebhookSync(giveaway, `page-comment-batch:${batchKey}`);
+      }
+    }
+  }
+
+  // Always acknowledge a valid signed delivery, including irrelevant events,
+  // so Meta does not retry activity that cannot affect this giveaway.
+  res.sendStatus(200);
+});
 
 /**
  * GET /meta/status

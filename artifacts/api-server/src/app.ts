@@ -40,6 +40,13 @@ app.use(
   }),
 );
 
+// Meta signs the exact request bytes. Parse only this narrow endpoint as raw
+// before the global JSON parser so the webhook handler can verify its HMAC.
+app.use(
+  "/api/meta/webhook",
+  express.raw({ type: "application/json", limit: "128kb" }),
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
