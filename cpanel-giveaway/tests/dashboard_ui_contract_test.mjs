@@ -189,7 +189,7 @@ assert.equal(dashboard.elements.participants.children[0].children[3].textContent
 assert.equal(dashboard.elements.participants.children[0].children[2].textContent, "بەشداربووی ناسنامەدار");
 
 const liveIds = [
-  "live-prize", "live-status", "live-totals", "live-identity-note", "podium",
+  "live-prize", "live-status", "live-totals", "podium",
   "live-participants",
 ];
 const live = createContext(liveIds);
@@ -200,8 +200,8 @@ vm.runInContext(
 await settle();
 
 assert.match(live.elements["live-totals"].textContent, /5 کۆی کۆمێنتەکان/);
-assert.match(live.elements["live-totals"].textContent, /1 بەشداربووی ناسنامەدار/);
-assert.match(live.elements["live-identity-note"].textContent, /کۆمێنتە بێ ناسنامەکان لە پۆدیۆم دانەنراون/);
+assert.match(live.elements["live-totals"].textContent, /2 براوە/);
+assert.doesNotMatch(live.elements["live-totals"].textContent, /ناسنامە/);
 assert.equal(live.elements.podium.children.length, 1);
 assert.equal(live.elements.podium.children[0].children[1].textContent, "بەشداربووی ناسنامەدار · 2 کۆمێنت");
 
@@ -223,7 +223,7 @@ assert.equal(anonymousLive.elements.podium.children.length, 0);
 assert.equal(anonymousLive.elements["live-participants"].children.length, 1);
 assert.match(
   anonymousLive.elements["live-participants"].children[0].textContent,
-  /براوە دیاری ناکرێت/,
+  /هێشتا بەشداربوویەک بۆ پیشاندان نییە/,
 );
 
 console.log("dashboard and live UI contract tests passed");

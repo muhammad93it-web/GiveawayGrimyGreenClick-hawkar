@@ -364,3 +364,17 @@ mtime_ms = 1787525815687
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/34b6a95f-b0f3-484f-91ad-1b45a4119d4b/abe79a70-a2cc-4ea3-a287-3f917edc8629"
 storage_version_token = "1787525826859624"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "ZxAZ3GY8XiHNGhqdUNxF6"
+uri = "file://.agents/outputs/gyadarmany-ranya-php-mysql-cpanel-v1.3.1.zip"
+type = "unspecified"
+title = "وەشانی ١.٣.١ — شاشەی ڕاستەوخۆی بێ پەیامی ناسنامە"
+description = "پەیامی ناسنامە و ژمارەی بەشداربووانی ناسنامەدار لە شاشەی لایڤ لابراون؛ تەنها ژمارەی کۆمێنت، ژمارەی براوەکان و ڕیزبەندی پیشان دەدرێت."
+logical_id = "531fc2d7-596b-4c11-a374-99ace18201da"
+content_hash = "sha256:2bcd6ed44b3506ed57eccf613db02081a526921e14c58afa4283e5edc5133284"
+size = 171089
+mtime_ms = 1787527530086
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/531fc2d7-596b-4c11-a374-99ace18201da/420f87ae-04d3-491b-ba75-7364edcad2f5"
+storage_version_token = "1787527539506692"
+content_type = "application/octet-stream"

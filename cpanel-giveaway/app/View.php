@@ -44,7 +44,7 @@ final class View
     public static function live(): void
     {
         self::header('شاشەی ڕاستەوخۆ — گیادەرمانی سروشتی ڕانیە', 'live.js');
-        echo '<section id="live" class="live"><header class="live-head"><div class="brand"><img src="/assets/logo.png" alt="لۆگۆی گیادەرمانی سروشتی ڕانیە"><div><p class="eyebrow">گیادەرمانی سروشتی ڕانیە</p><h1 id="live-prize">خەریکی بارکردن...</h1></div></div><div id="live-status" class="badge">چاوەڕێبە</div></header><div id="live-totals" class="live-total"></div><p id="live-identity-note" class="identity-note hidden"></p><div id="podium" class="podium"></div><section class="live-list"><h2>ڕکابەرە ناسنامەدارەکان</h2><ol id="live-participants" class="ranking"></ol></section></section>';
+        echo '<section id="live" class="live"><header class="live-head"><div class="brand"><img src="/assets/logo.png" alt="لۆگۆی گیادەرمانی سروشتی ڕانیە"><div><p class="eyebrow">گیادەرمانی سروشتی ڕانیە</p><h1 id="live-prize">خەریکی بارکردن...</h1></div></div><div id="live-status" class="badge">چاوەڕێبە</div></header><div id="live-totals" class="live-total"></div><div id="podium" class="podium"></div><section class="live-list"><h2>ڕکابەرەکان</h2><ol id="live-participants" class="ranking"></ol></section></section>';
         self::footer();
     }
 
