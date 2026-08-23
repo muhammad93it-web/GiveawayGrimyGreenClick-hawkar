@@ -186,5 +186,6 @@ App::boot($config);
 require_once __DIR__ . '/Auth.php';
 require_once __DIR__ . '/Meta.php';
 require_once __DIR__ . '/Giveaway.php';
+require_once __DIR__ . '/CommentImport.php';
 require_once __DIR__ . '/Http.php';
 require_once __DIR__ . '/View.php';

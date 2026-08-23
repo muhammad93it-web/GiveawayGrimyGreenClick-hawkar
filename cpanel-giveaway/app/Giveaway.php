@@ -28,6 +28,7 @@ final class Giveaway
                 'totalComments' => 0,
                 'totalParticipants' => 0,
                 'identityCoverage' => self::emptyIdentityCoverage(),
+                'commentImport' => CommentImport::emptyStatus(),
             ];
         }
         $statement = App::db()->prepare(self::identifiedParticipantsSql());
@@ -58,6 +59,7 @@ final class Giveaway
             'totalParticipants' => (int) $giveaway['total_participants'],
             'lastSyncedAt' => App::iso($giveaway['last_synced_at']),
             'lastError' => $giveaway['last_error'],
+            'commentImport' => CommentImport::status($giveaway),
             'identityCoverage' => $identityCoverage,
             'participants' => $participants,
         ];
@@ -140,6 +142,7 @@ final class Giveaway
             self::sync($giveaway, true);
         } else {
             App::db()->prepare('UPDATE giveaways SET status = ? WHERE id = ?')->execute([$status, $giveaway['id']]);
+            CommentImport::clearCompletionRequest((string) $giveaway['id']);
         }
         return self::projection(self::current($userId));
     }
@@ -153,11 +156,15 @@ final class Giveaway
         if ($giveaway['status'] === 'completed') {
             throw new AppException('خەڵاتەکە تەواو کراوە؛ پێش نوێکردنەوە دووبارە دەستی پێبکەرەوە.', 409);
         }
-        self::sync($giveaway);
+        $complete = self::sync($giveaway);
+        if (!$complete) {
+            App::db()->prepare('UPDATE giveaways SET status="running" WHERE id=?')
+                ->execute([$giveaway['id']]);
+        }
         return self::projection(self::current($userId));
     }
 
-    public static function sync(array $giveaway, bool $completeAfterSync = false): void
+    public static function sync(array $giveaway, bool $completeAfterSync = false): bool
     {
         $lock = App::uuid();
         $statement = App::db()->prepare(
@@ -172,46 +179,7 @@ final class Giveaway
             if (!$connection || in_array($connection['token_status'], ['expired', 'reconnect_required'], true)) {
                 throw new MetaApiException('مۆڵەتی Meta بەسەرچووە یان پچڕاوە؛ تکایە دووبارە پەیوەستی بکەرەوە.', 401, true);
             }
-            $comments = Meta::comments($giveaway, $connection);
-            $aggregates = self::aggregateComments($comments);
-
-            $pdo = App::db();
-            $pdo->beginTransaction();
-            $lockCheck = $pdo->prepare('SELECT sync_locked_by FROM giveaways WHERE id = ? FOR UPDATE');
-            $lockCheck->execute([$giveaway['id']]);
-            $currentLock = $lockCheck->fetchColumn();
-            if (!is_string($currentLock) || !App::safeEqual($lock, $currentLock)) {
-                throw new AppException('قوفڵی نوێکردنەوە گۆڕاوە؛ داتای پێشوو پارێزرا.', 409);
-            }
-            $pdo->prepare('DELETE FROM imported_comments WHERE giveaway_id = ?')->execute([$giveaway['id']]);
-            $pdo->prepare('DELETE FROM participant_aggregates WHERE giveaway_id = ?')->execute([$giveaway['id']]);
-            $insertComment = $pdo->prepare(
-                'INSERT INTO imported_comments (giveaway_id, external_comment_id, external_comment_hash, platform, external_user_id, display_name, profile_picture_url, comment_text, commented_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-            );
-            foreach ($comments as $comment) {
-                $insertComment->execute([
-                    $giveaway['id'], $comment['externalCommentId'], hash('sha256', $comment['externalCommentId']),
-                    $comment['platform'], $comment['externalUserId'],
-                    $comment['displayName'], $comment['profilePictureUrl'], $comment['text'], $comment['commentedAt'],
-                ]);
-            }
-            $insertParticipant = $pdo->prepare(
-                'INSERT INTO participant_aggregates (giveaway_id, platform, external_user_id, external_user_hash, display_name, profile_picture_url, comment_count, rank_position, most_recent_comment_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-            );
-            foreach ($aggregates as $index => $participant) {
-                $insertParticipant->execute([
-                    $giveaway['id'], $participant['platform'], $participant['externalUserId'],
-                    hash('sha256', $participant['externalUserId']), $participant['displayName'],
-                    $participant['profilePictureUrl'], $participant['commentCount'], $index + 1, $participant['mostRecentCommentAt'],
-                ]);
-            }
-            $update = 'UPDATE giveaways SET total_comments=?, total_participants=?, last_synced_at=UTC_TIMESTAMP(), last_error=NULL';
-            if ($completeAfterSync) {
-                $update .= ', status="completed"';
-            }
-            $update .= ' WHERE id=?';
-            $pdo->prepare($update)->execute([count($comments), count($aggregates), $giveaway['id']]);
-            $pdo->commit();
+            return CommentImport::advance($giveaway, $connection, $lock, $completeAfterSync);
         } catch (Throwable $error) {
             if (App::db()->inTransaction()) {
                 App::db()->rollBack();
@@ -221,6 +189,7 @@ final class Giveaway
             }
             $message = $error instanceof AppException ? $error->safeMessage : 'نوێکردنەوە سەرکەوتوو نەبوو؛ داتای پێشوو پارێزرا.';
             $message = function_exists('mb_substr') ? mb_substr($message, 0, 255) : substr($message, 0, 255);
+            CommentImport::markFailed((string) $giveaway['id'], $message);
             App::db()->prepare('UPDATE giveaways SET last_error = ? WHERE id = ?')->execute([$message, $giveaway['id']]);
             throw $error;
         } finally {

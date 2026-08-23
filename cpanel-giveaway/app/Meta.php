@@ -397,34 +397,113 @@ final class Meta
         throw new AppException('پۆستە هەڵبژێردراوەکە لەسەر ئەم پەیجە یان هەژمارە نییە.', 403);
     }
 
-    public static function comments(array $giveaway, array $connection): array
+    public static function commentPage(array $giveaway, array $connection, ?string $after = null): array
     {
         $token = self::assetToken($connection, $giveaway['asset_id']);
         $isInstagram = $giveaway['post_platform'] === 'instagram';
-        $fields = $isInstagram ? 'id,text,timestamp,username,from{id,username}' : 'id,message,created_time,from{id,name,picture}';
+        $fields = $isInstagram
+            ? 'id,text,timestamp,username,from{id,username},replies.limit(100){id,text,timestamp,username,from{id,username}}'
+            : 'id,message,created_time,from{id,name,picture},parent{id},comment_count,comments.limit(100){id,message,created_time,from{id,name,picture},parent{id}}';
         $path = '/' . rawurlencode($giveaway['post_id']) . '/comments';
-        $page = Graph::get($path, $token, ['fields' => $fields, 'limit' => 100]);
-        $comments = [];
-        for ($pages = 0; $pages < 50; $pages++) {
-            foreach (($page['data'] ?? []) as $item) {
-                if (!is_array($item)) {
-                    continue;
-                }
-                $comment = self::normalizeCommentItem($item, $isInstagram);
-                if ($comment !== null) {
-                    $comments[] = $comment;
-                }
-            }
-            $next = $page['paging']['next'] ?? null;
-            if (!is_string($next) || $next === '') {
-                return $comments;
-            }
-            if ($pages === 49) {
-                throw new MetaApiException('زانیاریی کۆمێنتەکان زۆرە و بە تەواوی وەرنەگیرا؛ ڕیزبەندی نوێ نەکراوە.', 502);
-            }
-            $page = Graph::next($next, $token);
+        $query = ['fields' => $fields, 'limit' => 100];
+        if (!$isInstagram) {
+            $query['filter'] = 'stream';
         }
-        return $comments;
+        if ($after !== null && $after !== '') {
+            $query['after'] = $after;
+        }
+        return self::normalizeCommentPage(Graph::get($path, $token, $query), $isInstagram);
+    }
+
+    public static function replyPage(
+        array $giveaway,
+        array $connection,
+        string $parentCommentId,
+        ?string $after = null
+    ): array {
+        $token = self::assetToken($connection, $giveaway['asset_id']);
+        $isInstagram = $giveaway['post_platform'] === 'instagram';
+        $fields = $isInstagram
+            ? 'id,text,timestamp,username,from{id,username}'
+            : 'id,message,created_time,from{id,name,picture},parent{id}';
+        $path = '/' . rawurlencode($parentCommentId) . ($isInstagram ? '/replies' : '/comments');
+        $query = ['fields' => $fields, 'limit' => 100];
+        if (!$isInstagram) {
+            $query['filter'] = 'stream';
+        }
+        if ($after !== null && $after !== '') {
+            $query['after'] = $after;
+        }
+        $page = Graph::get($path, $token, $query);
+        foreach (($page['data'] ?? []) as &$item) {
+            if (is_array($item) && !isset($item['parent'])) {
+                $item['parent'] = ['id' => $parentCommentId];
+            }
+        }
+        unset($item);
+        return self::normalizeCommentPage($page, $isInstagram, false);
+    }
+
+    /**
+     * Normalize one Graph page and its first embedded reply page.
+     *
+     * Only opaque paging cursors are returned. A Graph next URL (which can
+     * contain a token) is never persisted.
+     */
+    public static function normalizeCommentPage(
+        array $page,
+        bool $isInstagram,
+        bool $includeEmbeddedReplies = true
+    ): array {
+        $comments = [];
+        $replyEdge = $isInstagram ? 'replies' : 'comments';
+        foreach (($page['data'] ?? []) as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $comment = self::normalizeCommentItem($item, $isInstagram);
+            if ($comment === null) {
+                continue;
+            }
+            $isReply = $comment['parentCommentId'] !== null;
+            $comment['isReply'] = $isReply;
+            $comment['repliesComplete'] = true;
+            $comment['replyAfter'] = null;
+
+            if ($includeEmbeddedReplies && !$isReply) {
+                $edgeWasReturned = isset($item[$replyEdge]) && is_array($item[$replyEdge]);
+                $edge = $edgeWasReturned ? $item[$replyEdge] : [];
+                $embedded = is_array($edge['data'] ?? null) ? $edge['data'] : [];
+                $replyAfter = self::nextCursor($edge);
+                $knownReplyCount = max(0, (int) ($item['comment_count'] ?? count($embedded)));
+                $comment['repliesComplete'] = $edgeWasReturned
+                    && $replyAfter === null
+                    && $knownReplyCount <= count($embedded);
+                $comment['replyAfter'] = $replyAfter;
+
+                foreach ($embedded as $replyItem) {
+                    if (!is_array($replyItem)) {
+                        continue;
+                    }
+                    if (!isset($replyItem['parent'])) {
+                        $replyItem['parent'] = ['id' => $comment['externalCommentId']];
+                    }
+                    $reply = self::normalizeCommentItem($replyItem, $isInstagram);
+                    if ($reply !== null) {
+                        $reply['isReply'] = true;
+                        $reply['repliesComplete'] = true;
+                        $reply['replyAfter'] = null;
+                        $comments[$reply['externalCommentId']] = $reply;
+                    }
+                }
+            }
+            $comments[$comment['externalCommentId']] = $comment;
+        }
+
+        return [
+            'comments' => array_values($comments),
+            'nextAfter' => self::nextCursor($page),
+        ];
     }
 
     /**
@@ -461,6 +540,8 @@ final class Meta
 
         $time = $isInstagram ? ($item['timestamp'] ?? '') : ($item['created_time'] ?? '');
         $parsed = strtotime((string) $time);
+        $parent = is_array($item['parent'] ?? null) ? $item['parent'] : [];
+        $parentId = self::nonEmptyString($parent['id'] ?? null);
 
         return [
             'externalCommentId' => $id,
@@ -470,7 +551,26 @@ final class Meta
             'profilePictureUrl' => $picture,
             'text' => trim((string) ($isInstagram ? ($item['text'] ?? '') : ($item['message'] ?? ''))),
             'commentedAt' => $parsed === false ? gmdate('Y-m-d H:i:s') : gmdate('Y-m-d H:i:s', $parsed),
+            'parentCommentId' => $parentId,
         ];
+    }
+
+    private static function nextCursor(array $page): ?string
+    {
+        $next = self::nonEmptyString($page['paging']['next'] ?? null);
+        if ($next === null) {
+            return null;
+        }
+        $cursor = self::nonEmptyString($page['paging']['cursors']['after'] ?? null);
+        if ($cursor === null) {
+            $parts = parse_url($next);
+            parse_str((string) ($parts['query'] ?? ''), $query);
+            $cursor = self::nonEmptyString($query['after'] ?? null);
+        }
+        if ($cursor === null || strlen($cursor) > 8192) {
+            throw new MetaApiException('نیشانەی بەردەوامبوونی کۆمێنتەکان نادروستە.', 502);
+        }
+        return $cursor;
     }
 
     private static function nonEmptyString(mixed $value): ?string

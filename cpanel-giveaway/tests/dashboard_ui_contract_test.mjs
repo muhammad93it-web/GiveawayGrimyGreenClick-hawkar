@@ -59,6 +59,17 @@ const giveawayFixture = {
   totalParticipants: 4,
   lastSyncedAt: "2026-08-23T12:05:00+00:00",
   lastError: null,
+  commentImport: {
+    status: "running",
+    phase: "top_level",
+    pageCount: 2,
+    fetchedComments: 5,
+    startedAt: "2026-08-23T12:04:00+00:00",
+    completedAt: null,
+    lastError: null,
+    completionRequested: false,
+    migrationRequired: false,
+  },
   identityCoverage: {
     identifiedComments: 2,
     anonymousComments: 3,
@@ -157,7 +168,7 @@ const settle = async () => {
 const dashboardIds = [
   "notice", "setup-card", "app-card", "callback", "admin-name", "asset", "post",
   "prize-title", "prize-count", "status", "totals", "identity-note", "participants",
-  "sync-note", "save", "change", "start", "pause", "complete", "sync", "disconnect",
+  "import-note", "sync-note", "save", "change", "start", "pause", "complete", "sync", "disconnect",
   "refresh-token",
 ];
 const dashboard = createContext(dashboardIds);
@@ -171,6 +182,8 @@ assert.match(dashboard.elements.totals.textContent, /5 کۆمێنت/);
 assert.match(dashboard.elements.totals.textContent, /1 بەشداربووی ناسنامەدار/);
 assert.doesNotMatch(dashboard.elements.totals.textContent, /بێ ناسنامە/);
 assert.match(dashboard.elements["identity-note"].textContent, /3 کۆمێنتی دیکە لە پۆدیۆم و ڕیزبەندی دانەنراون/);
+assert.match(dashboard.elements["import-note"].textContent, /2 پەڕە و 5 کۆمێنت/);
+assert.match(dashboard.elements["import-note"].textContent, /داتای پێشوو/);
 assert.equal(dashboard.elements.participants.children.length, 1);
 assert.equal(dashboard.elements.participants.children[0].children[3].textContent, 2);
 assert.equal(dashboard.elements.participants.children[0].children[2].textContent, "بەشداربووی ناسنامەدار");

@@ -350,3 +350,17 @@ mtime_ms = 1787520666214
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/04511436-03b8-4109-80d9-7360a789648b/f1e1eb0b-5408-4848-82b2-e6f79ad4065c"
 storage_version_token = "1787520677819844"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "VMI-ntIl9wh96zOq-bZWL"
+uri = "file://.agents/outputs/gyadarmany-ranya-php-mysql-cpanel-v1.3.0.zip"
+type = "unspecified"
+title = "وەشانی ١.٣.٠ — سیستەمی خەڵاتی cPanel"
+description = "هێنانی بەردەوامی هەموو کۆمێنتە پێشووەکان و وەڵامەکان، پاراستنی ڕیزبەندیی کۆن تا کۆتایی کار، فایلەکانی نوێکردنەوەی بنکەی داتا و ڕێنماییی کوردی."
+logical_id = "34b6a95f-b0f3-484f-91ad-1b45a4119d4b"
+content_hash = "sha256:0baa4b07a3d6b0a934821561f811d753decccffc51164c412213d19120a0d456"
+size = 171365
+mtime_ms = 1787525815687
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/34b6a95f-b0f3-484f-91ad-1b45a4119d4b/abe79a70-a2cc-4ea3-a287-3f917edc8629"
+storage_version_token = "1787525826859624"
+content_type = "application/octet-stream"

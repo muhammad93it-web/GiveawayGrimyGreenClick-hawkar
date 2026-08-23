@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 /**
  * بۆ cPanel Cron Jobs:
- * * * * * /usr/local/bin/php /home/USERNAME/giveaway-app/cron/sync.php >/dev/null 2>&1
+ * 0,5,10,15,20,25,30,35,40,45,50,55 * * * * /usr/local/bin/php /home/USERNAME/giveaway-app/cron/sync.php >/dev/null 2>&1
  */
 require_once __DIR__ . '/../app/bootstrap.php';
 
@@ -14,8 +14,8 @@ try {
     $running = $pdo->query('SELECT * FROM giveaways WHERE status = "running"')->fetchAll();
     foreach ($running as $giveaway) {
         try {
-            Giveaway::sync($giveaway);
-            echo "Synced giveaway " . $giveaway['id'] . PHP_EOL;
+            $complete = Giveaway::sync($giveaway);
+            echo ($complete ? "Synced giveaway " : "Continuing giveaway import ") . $giveaway['id'] . PHP_EOL;
         } catch (AppException $error) {
             // A lock conflict means a manual pull is already working; no sensitive data is logged.
             echo "Skipped/failed giveaway " . $giveaway['id'] . ": " . $error->status . PHP_EOL;

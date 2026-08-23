@@ -98,6 +98,44 @@ $invalidImage = Meta::normalizeCommentItem([
 ], false);
 expect($invalidImage['profilePictureUrl'] === null, 'Unsafe profile-photo schemes must be rejected.');
 
+$page = Meta::normalizeCommentPage([
+    'data' => [[
+        'id' => 'old-top-level-comment',
+        'message' => 'کۆمێنتی کۆن',
+        'created_time' => '2026-08-20T12:00:00+0000',
+        'comment_count' => 2,
+        'comments' => [
+            'data' => [[
+                'id' => 'old-reply-comment',
+                'message' => 'وەڵامی کۆن',
+                'created_time' => '2026-08-20T12:01:00+0000',
+            ]],
+            'paging' => [
+                'next' => 'https://graph.facebook.com/v26.0/old-top-level-comment/comments?after=reply-cursor&access_token=must-not-be-stored',
+                'cursors' => ['after' => 'reply-cursor'],
+            ],
+        ],
+    ]],
+    'paging' => [
+        'next' => 'https://graph.facebook.com/v26.0/post/comments?after=top-cursor&access_token=must-not-be-stored',
+        'cursors' => ['after' => 'top-cursor'],
+    ],
+], false);
+expect($page['nextAfter'] === 'top-cursor', 'Top-level continuation cursor should be retained.');
+expect(count($page['comments']) === 2, 'Embedded replies should be included with top-level comments.');
+$pageById = [];
+foreach ($page['comments'] as $comment) {
+    $pageById[$comment['externalCommentId']] = $comment;
+}
+expect($pageById['old-top-level-comment']['repliesComplete'] === false, 'A parent with another reply page should remain pending.');
+expect($pageById['old-top-level-comment']['replyAfter'] === 'reply-cursor', 'Reply continuation cursor should be retained.');
+expect($pageById['old-reply-comment']['parentCommentId'] === 'old-top-level-comment', 'Embedded reply should retain its parent.');
+expect($pageById['old-reply-comment']['isReply'] === true, 'Embedded reply should be marked as a reply.');
+expect(
+    !str_contains((string) $pageById['old-top-level-comment']['replyAfter'], 'access_token'),
+    'Only an opaque cursor, never a token-bearing next URL, may be persisted.'
+);
+
 $projectionSqlMethod = new ReflectionMethod(Giveaway::class, 'identifiedParticipantsSql');
 $projectionSql = $projectionSqlMethod->invoke(null);
 expect(

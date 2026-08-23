@@ -42,6 +42,17 @@ if (str_starts_with($path, '/api/')) {
             'totalParticipants' => 4,
             'lastSyncedAt' => '2026-08-23T12:05:00+00:00',
             'lastError' => null,
+            'commentImport' => [
+                'status' => 'running',
+                'phase' => 'top_level',
+                'pageCount' => 2,
+                'fetchedComments' => 5,
+                'startedAt' => '2026-08-23T12:04:00+00:00',
+                'completedAt' => null,
+                'lastError' => null,
+                'completionRequested' => false,
+                'migrationRequired' => false,
+            ],
             'identityCoverage' => [
                 'identifiedComments' => 2,
                 'anonymousComments' => 3,
