@@ -420,3 +420,17 @@ mtime_ms = 1787560915769
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/98002855-e824-404d-ae9a-6615bf43154e/12cadad4-4acd-4f2e-83d0-27c50d0858e6"
 storage_version_token = "1787561100372369"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "s6GsHoyOeF4us0Hr2qRnW"
+uri = "file://.agents/outputs/gyadarmany-ranya-php-mysql-cpanel-v1.4.1.zip"
+type = "unspecified"
+title = "وەشانی ١.٤.١ — پەڕەی مەرجەکانی بەکارهێنان"
+description = "زیپی پشکنراوی cPanel؛ پەڕەی /terms و بەستەری نێوان /terms و /privacy زیاد کراوە. config/config.php و هیچ نهێنییەک لە زیپەکەدا نییە."
+logical_id = "39e35db9-3b7f-4d8e-b631-e752febb11db"
+content_hash = "sha256:b864c76253b43c68459cdf4179e8046738dcec96e3b065407cc126f9386c8531"
+size = 178785
+mtime_ms = 1787580174643
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/39e35db9-3b7f-4d8e-b631-e752febb11db/d0d706d9-89a1-40bf-b05f-6eddbb9f3acc"
+storage_version_token = "1787580188769652"
+content_type = "application/octet-stream"

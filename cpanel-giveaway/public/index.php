@@ -23,6 +23,10 @@ switch ($path) {
     case '/privacy/':
         View::privacy();
         break;
+    case '/terms':
+    case '/terms/':
+        View::terms();
+        break;
     default:
         http_response_code(404);
         View::notFound();
