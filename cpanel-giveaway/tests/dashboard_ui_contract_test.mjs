@@ -56,7 +56,14 @@ const giveawayFixture = {
   prizeCount: 2,
   prizeTitle: "خەڵاتی تاقیکردنەوە",
   totalComments: 5,
-  totalParticipants: 4,
+  totalParticipants: 1,
+  participantsCount: 1,
+  commentsWithIdentity: 2,
+  commentsWithoutIdentity: 3,
+  pagesFetched: 2,
+  importStatus: "running",
+  lastImportError: null,
+  includeReplies: true,
   lastSyncedAt: "2026-08-23T12:05:00+00:00",
   lastError: null,
   commentImport: {
@@ -126,6 +133,22 @@ const apiResponse = url => {
   if (url === "/api/meta/assets") {
     return [{ id: "page-1", name: "پەیجی تاقیکردنەوە", platform: "facebook" }];
   }
+  if (url === "/api/meta/permissions") {
+    return {
+      requested: ["pages_show_list", "pages_read_engagement", "pages_read_user_content"],
+      granted: ["pages_show_list", "pages_read_engagement", "pages_read_user_content"],
+      declined: [],
+      expired: [],
+      pageCommentAccess: "granted",
+      businessAssetUserProfileAccess: "requires_meta_app_review",
+      historicalCommentSample: {
+        commentReturned: true,
+        fromPresent: false,
+        fromIdPresent: false,
+        fromNamePresent: false,
+      },
+    };
+  }
   if (url.includes("/posts")) {
     return [{ id: "post-1", message: "پۆستی تاقیکردنەوە", createdAt: "2026-08-23T12:00:00+00:00" }];
   }
@@ -167,9 +190,9 @@ const settle = async () => {
 
 const dashboardIds = [
   "notice", "setup-card", "app-card", "callback", "admin-name", "asset", "post",
-  "prize-title", "prize-count", "status", "totals", "participants",
-  "sync-note", "save", "change", "start", "pause", "complete", "sync", "disconnect",
-  "refresh-token",
+  "prize-title", "prize-count", "include-replies", "status", "totals", "participants",
+  "identity-note", "import-note", "sync-note", "permissions-note", "save", "change",
+  "start", "pause", "complete", "sync", "disconnect", "refresh-token", "check-permissions",
 ];
 const dashboard = createContext(dashboardIds);
 vm.runInContext(
@@ -179,7 +202,10 @@ vm.runInContext(
 await settle();
 
 assert.match(dashboard.elements.totals.textContent, /5 کۆمێنت/);
+assert.match(dashboard.elements.totals.textContent, /1 بەشداربوو/);
 assert.doesNotMatch(dashboard.elements.totals.textContent, /ناسنامە/);
+assert.match(dashboard.elements["identity-note"].textContent, /ناسنامەی 3 کۆمێنتی نەداوە/);
+assert.match(dashboard.elements["import-note"].textContent, /2 پەڕە پشکنراوە/);
 assert.equal(dashboard.elements.participants.children.length, 1);
 assert.equal(dashboard.elements.participants.children[0].children[3].textContent, 2);
 assert.equal(dashboard.elements.participants.children[0].children[2].textContent, "بەشداربووی ناسنامەدار");

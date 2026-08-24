@@ -32,11 +32,11 @@ final class View
         echo '<label>پەیج یان هەژمار<select id="asset"><option value="">-- هەڵبژێرە --</option></select></label>';
         echo '<label>پۆست<select id="post"><option value="">-- سەرەتا پەیج هەڵبژێرە --</option></select></label>';
         echo '<label>ناونیشانی خەڵات<input id="prize-title" maxlength="255" placeholder="نموونە: خەڵاتی پایزە"></label>';
-        echo '<label>ژمارەی براوەکان<input id="prize-count" type="number" min="1" max="50" value="3"></label>';
+        echo '<label>ژمارەی براوەکان<input id="prize-count" type="number" min="1" max="50" value="3"></label><label>شێوازی ژماردن<select id="include-replies"><option value="1">کۆمێنتە سەرەکییەکان و وەڵامەکان</option><option value="0">تەنها کۆمێنتە سەرەکییەکان</option></select></label>';
         echo '<button id="save" class="button">پاشەکەوتکردن</button><button id="change" class="button danger hidden">گۆڕینی پۆست و دەستپێکردنەوە</button>';
-        echo '<hr><button id="refresh-token" class="button secondary">نوێکردنەوەی مۆڵەتەکانی Meta</button><button id="disconnect" class="link danger-text">پچڕاندنی پەیوەندی Meta</button></article>';
-        echo '<article class="card controls"><h2>کۆنتڕۆڵەکانی پەخش</h2><p>دۆخ: <strong id="status">دیارینەکراو</strong></p><div class="actions"><button id="start" class="button">دەستپێکردن</button><button id="pause" class="button secondary">وەستاندن</button><button id="complete" class="button warning">کۆتایی هێنان</button><button id="sync" class="button secondary">نوێکردنەوەی کۆمێنت</button></div><p id="sync-note" class="muted"></p></article>';
-        echo '<article class="card results"><div class="result-head"><h2>ڕیزبەندیی بەشداربووان</h2><span id="totals" class="badge">٠ کۆمێنت</span></div><ol id="participants" class="ranking"></ol></article>';
+        echo '<hr><button id="refresh-token" class="button secondary">نوێکردنەوەی مۆڵەتەکانی Meta</button><button id="check-permissions" class="button secondary">پشکنینی مۆڵەتەکانی Meta</button><button id="disconnect" class="link danger-text">پچڕاندنی پەیوەندی Meta</button><pre id="permissions-note" class="muted"></pre></article>';
+        echo '<article class="card controls"><h2>کۆنتڕۆڵەکانی پەخش</h2><p>دۆخ: <strong id="status">دیارینەکراو</strong></p><div class="actions"><button id="start" class="button">دەستپێکردن</button><button id="pause" class="button secondary">وەستاندن</button><button id="complete" class="button warning">کۆتایی هێنان</button><button id="sync" class="button secondary">بەردەوامکردنی هێنانەوە</button></div><p id="import-note" class="identity-note hidden"></p><p id="sync-note" class="muted"></p></article>';
+        echo '<article class="card results"><div class="result-head"><h2>ڕیزبەندیی بەشداربووان</h2><span id="totals" class="badge">٠ کۆمێنت</span></div><p id="identity-note" class="identity-note hidden"></p><ol id="participants" class="ranking"></ol></article>';
         echo '</section>';
         self::footer();
     }

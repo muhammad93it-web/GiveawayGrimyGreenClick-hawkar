@@ -392,3 +392,31 @@ mtime_ms = 1787528675662
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/48fc5cd1-687a-4c42-84e3-fdcff962b15a/63220c59-ec67-4d96-aa85-1c26e7964043"
 storage_version_token = "1787528705555857"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "2sWGiOTFSn0FfkM8KmpAe"
+uri = "file://.agents/outputs/gyadarmany-ranya-php-mysql-cpanel-v1.4.0.zip"
+type = "unspecified"
+title = "وەشانی ١.٤.٠ — پشکنین و چاکسازیی Meta"
+description = "زیپی پشکنراوی cPanel؛ لەگەڵ نوێکردنەوەی بنکەی داتا، پشکنینی مۆڵەت، ژماردنی سەرەکی/وەڵام، هەوڵدانەوەی کاتی، و ڕاپۆرتی تەواو. config/config.php و هیچ نهێنییەک لە زیپەکەدا نییە."
+logical_id = "c0e3bf87-e7ea-4bd3-8124-7536cdf29cb3"
+content_hash = "sha256:c0df138206afded91f9571e9c32b7a6b5427d26749682402fe039d465a30d54a"
+size = 177729
+mtime_ms = 1787561081774
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/c0e3bf87-e7ea-4bd3-8124-7536cdf29cb3/0d950c01-3571-419a-8119-2fe523cbaa82"
+storage_version_token = "1787561098974183"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "CbClVyCUA_bwutO6tMGYp"
+uri = "file://cpanel-giveaway/AUDIT-META-KU.md"
+type = "text"
+title = "ڕاپۆرتی تەواوی پشکنینی کۆمێنتە مێژووییەکان"
+description = "هۆکاری سەرەکی، فایلەکان، گۆڕانکاریی بنکەی داتا، مۆڵەتەکان، ژمارە ڕاستەوخۆکان و هەنگاوە دەستییەکانی Meta."
+logical_id = "98002855-e824-404d-ae9a-6615bf43154e"
+content_hash = "sha256:5ea015235edf8217462b0d55547fb5b493bc1f2b6963882a0d79c2bef224234f"
+size = 8172
+mtime_ms = 1787560915769
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/98002855-e824-404d-ae9a-6615bf43154e/12cadad4-4acd-4f2e-83d0-27c50d0858e6"
+storage_version_token = "1787561100372369"
+content_type = "text/markdown"

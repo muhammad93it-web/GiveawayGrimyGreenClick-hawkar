@@ -87,6 +87,28 @@ expect($aggregates[0]['commentCount'] === 2, 'Comments with the same stable ID s
 expect($aggregates[0]['displayName'] === 'ناوی تەواو', 'Later non-anonymous name should improve the aggregate.');
 expect($aggregates[0]['profilePictureUrl'] === 'https://example.com/person-2.jpg', 'Later profile photo should improve the aggregate.');
 
+$sameNameDifferentIds = Giveaway::aggregateComments([
+    [
+        'externalCommentId' => 'same-name-a',
+        'platform' => 'facebook',
+        'externalUserId' => 'person-a',
+        'displayName' => 'هەمان ناو',
+        'profilePictureUrl' => null,
+        'text' => '',
+        'commentedAt' => '2026-08-23 12:00:00',
+    ],
+    [
+        'externalCommentId' => 'same-name-b',
+        'platform' => 'facebook',
+        'externalUserId' => 'person-b',
+        'displayName' => 'هەمان ناو',
+        'profilePictureUrl' => null,
+        'text' => '',
+        'commentedAt' => '2026-08-23 12:01:00',
+    ],
+]);
+expect(count($sameNameDifferentIds) === 2, 'Different stable IDs with the same display name must remain separate participants.');
+
 $invalidImage = Meta::normalizeCommentItem([
     'id' => 'comment-unsafe-image',
     'created_time' => '2026-08-23T12:06:00+0000',
@@ -148,6 +170,41 @@ expect(
     $zeroReplyPage['comments'][0]['repliesComplete'] === true,
     'A Facebook comment with Meta-reported zero replies must not trigger an empty reply request.'
 );
+
+$topLevelOnlyPage = Meta::normalizeCommentPage([
+    'data' => [[
+        'id' => 'top-level-only',
+        'message' => 'کۆمێنتی سەرەکی',
+        'created_time' => '2026-08-20T12:00:00+0000',
+        'comment_count' => 1,
+        'comments' => ['data' => [[
+            'id' => 'reply-must-be-excluded',
+            'message' => 'وەڵام',
+            'created_time' => '2026-08-20T12:01:00+0000',
+        ]]],
+    ]],
+], false, false, true);
+expect(count($topLevelOnlyPage['comments']) === 1, 'Top-level-only mode must exclude embedded replies.');
+expect($topLevelOnlyPage['comments'][0]['repliesComplete'] === true, 'Top-level-only mode must not queue reply pages.');
+
+$streamContainingReply = Meta::normalizeCommentPage([
+    'data' => [
+        [
+            'id' => 'stream-top-level',
+            'message' => 'سەرەکی',
+            'created_time' => '2026-08-20T12:00:00+0000',
+            'comment_count' => 0,
+        ],
+        [
+            'id' => 'stream-reply',
+            'message' => 'وەڵام',
+            'created_time' => '2026-08-20T12:01:00+0000',
+            'parent' => ['id' => 'stream-top-level'],
+        ],
+    ],
+], false, false, true);
+expect(count($streamContainingReply['comments']) === 1, 'Top-level-only mode must defensively drop replies returned in page data.');
+expect($streamContainingReply['comments'][0]['externalCommentId'] === 'stream-top-level', 'Only the top-level comment should remain.');
 
 $projectionSqlMethod = new ReflectionMethod(Giveaway::class, 'identifiedParticipantsSql');
 $projectionSql = $projectionSqlMethod->invoke(null);

@@ -11,10 +11,18 @@ try {
     $pdo = App::db();
     $pdo->exec('DELETE FROM admin_sessions WHERE expires_at <= UTC_TIMESTAMP()');
     $pdo->exec('DELETE FROM oauth_states WHERE expires_at <= UTC_TIMESTAMP()');
-    $running = $pdo->query('SELECT * FROM giveaways WHERE status = "running"')->fetchAll();
+    $running = $pdo->query(
+        'SELECT g.*, r.status AS import_status
+         FROM giveaways g
+         LEFT JOIN comment_import_runs r ON r.giveaway_id = g.id
+         WHERE g.status = "running"
+           AND (r.status IS NULL OR r.status <> "complete" OR g.sync_requested = 1)'
+    )->fetchAll();
     foreach ($running as $giveaway) {
         try {
-            $complete = Giveaway::sync($giveaway);
+            $freshSnapshot = $giveaway['import_status'] === 'complete'
+                && (int) $giveaway['sync_requested'] === 1;
+            $complete = Giveaway::sync($giveaway, false, $freshSnapshot);
             echo ($complete ? "Synced giveaway " : "Continuing giveaway import ") . $giveaway['id'] . PHP_EOL;
         } catch (AppException $error) {
             // A lock conflict means a manual pull is already working; no sensitive data is logged.

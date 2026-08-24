@@ -10,7 +10,7 @@ declare(strict_types=1);
 final class CommentImport
 {
     private const MAX_PAGE_REQUESTS_PER_PASS = 4;
-    private const STRATEGY_VERSION = 2;
+    private const STRATEGY_VERSION = 3;
 
     public static function emptyStatus(): array
     {
@@ -81,9 +81,10 @@ final class CommentImport
         array $giveaway,
         array $connection,
         string $lock,
-        bool $completeAfterSync = false
+        bool $completeAfterSync = false,
+        bool $freshSnapshot = false
     ): bool {
-        $run = self::startOrResume($giveaway, $completeAfterSync);
+        $run = self::startOrResume($giveaway, $completeAfterSync, $freshSnapshot);
 
         for ($requests = 0; $requests < self::MAX_PAGE_REQUESTS_PER_PASS;) {
             if ($run['phase'] === 'top_level') {
@@ -146,7 +147,11 @@ final class CommentImport
         }
     }
 
-    private static function startOrResume(array $giveaway, bool $completeAfterSync): array
+    private static function startOrResume(
+        array $giveaway,
+        bool $completeAfterSync,
+        bool $freshSnapshot
+    ): array
     {
         $pdo = App::db();
         try {
@@ -157,8 +162,9 @@ final class CommentImport
             $newRun = !$run
                 || $run['source_post_id'] !== $giveaway['post_id']
                 || $run['source_platform'] !== $giveaway['post_platform']
-                || $run['status'] === 'complete'
-                || (int) ($run['import_version'] ?? 0) < self::STRATEGY_VERSION;
+                || ($freshSnapshot && $run['status'] === 'complete')
+                || (int) ($run['import_version'] ?? 0) < self::STRATEGY_VERSION
+                || (int) ($run['include_replies'] ?? 1) !== (int) ($giveaway['include_replies'] ?? 1);
 
             if ($newRun) {
                 $runId = App::uuid();
@@ -168,14 +174,15 @@ final class CommentImport
                     'INSERT INTO comment_import_runs
                         (giveaway_id, run_id, source_post_id, source_platform, status, phase,
                          next_after, page_count, fetched_count, completion_requested,
-                         import_version, started_at, completed_at, last_error)
-                     VALUES (?, ?, ?, ?, "running", "top_level", NULL, 0, 0, ?, ?, UTC_TIMESTAMP(), NULL, NULL)
+                         import_version, include_replies, started_at, completed_at, last_error)
+                     VALUES (?, ?, ?, ?, "running", "top_level", NULL, 0, 0, ?, ?, ?, UTC_TIMESTAMP(), NULL, NULL)
                      ON DUPLICATE KEY UPDATE
                         run_id=VALUES(run_id), source_post_id=VALUES(source_post_id),
                         source_platform=VALUES(source_platform), status="running", phase="top_level",
                         next_after=NULL, page_count=0, fetched_count=0,
                         completion_requested=VALUES(completion_requested),
                         import_version=VALUES(import_version),
+                        include_replies=VALUES(include_replies),
                         started_at=UTC_TIMESTAMP(), completed_at=NULL, last_error=NULL'
                 )->execute([
                     $giveaway['id'],
@@ -184,8 +191,11 @@ final class CommentImport
                     $giveaway['post_platform'],
                     $completeAfterSync ? 1 : 0,
                     self::STRATEGY_VERSION,
+                    (int) ($giveaway['include_replies'] ?? 1),
                 ]);
-            } else {
+                $pdo->prepare('UPDATE giveaways SET sync_requested=0 WHERE id=?')
+                    ->execute([$giveaway['id']]);
+            } elseif ($run['status'] !== 'complete') {
                 $pdo->prepare(
                     'UPDATE comment_import_runs
                      SET status="running", last_error=NULL,
@@ -422,6 +432,11 @@ final class CommentImport
                     $participant['mostRecentCommentAt'],
                 ]);
             }
+            $identifiedParticipantCount = count(array_filter(
+                $aggregates,
+                static fn(array $participant): bool =>
+                    !str_starts_with((string) $participant['externalUserId'], 'anonymous:')
+            ));
 
             $statusSql = !empty($currentRun['completion_requested']) ? ', status="completed"' : '';
             $pdo->prepare(
@@ -429,7 +444,7 @@ final class CommentImport
                  SET total_comments=?, total_participants=?, last_synced_at=UTC_TIMESTAMP(),
                      last_error=NULL' . $statusSql . '
                  WHERE id=?'
-            )->execute([count($comments), count($aggregates), $giveaway['id']]);
+            )->execute([count($comments), $identifiedParticipantCount, $giveaway['id']]);
             $pdo->prepare(
                 'UPDATE comment_import_runs
                  SET status="complete", phase="complete", next_after=NULL,

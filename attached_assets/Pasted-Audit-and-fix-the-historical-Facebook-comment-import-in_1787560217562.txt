@@ -1,0 +1,153 @@
+Audit and fix the historical Facebook comment import in this giveaway application.
+
+Important observations from the deployed frontend:
+
+* `/assets/dashboard.js` calls `POST /api/giveaways/current/sync`.
+* The current giveaway reports about 125 total comments.
+* The ranking UI filters participants using:
+  `participants.filter(p => p.identityAvailable)`
+* Only newly received webhook comments currently have a usable name/profile identity.
+* Therefore, the main issue appears to be missing author identity for historically imported comments, not simply missing comment totals.
+
+Please inspect the complete backend and implement the following carefully:
+
+1. Audit before changing code
+
+Find and report:
+
+* The files and functions responsible for:
+
+  * Meta OAuth login
+  * Page access-token creation/storage
+  * Post loading
+  * Historical comment synchronization
+  * Webhook comment processing
+  * Participant aggregation
+* The current Graph API version.
+* The exact OAuth permissions currently requested.
+* Whether the token used to fetch comments is a Page Access Token or User Access Token.
+* A sanitized example of one historical comment returned by Meta, showing which fields exist or are missing.
+* Never print or expose access tokens, app secrets, appsecret_proof, cookies, or other secrets.
+
+2. Correct Meta permissions
+
+For Facebook Page comments, verify that the app requests and receives the permissions/features required by the current Graph API version, including where applicable:
+
+* `pages_show_list`
+* `pages_read_engagement`
+* `pages_read_user_content`
+* Advanced Access for the `Business Asset User Profile Access` feature
+
+Do not request `pages_manage_engagement` unless an existing feature truly needs to reply to, hide, or delete comments.
+
+Add a safe backend diagnostic that checks granted permissions without exposing the access token.
+
+If `Business Asset User Profile Access` or another required Advanced Access feature is missing, clearly report that this cannot be fixed only with code and must be approved in Meta App Review.
+
+3. Import all historical comments
+
+When a Page post is selected or the manual sync button is clicked, fetch comments from the Facebook Page Post Comments edge using the Page Access Token.
+
+Request at least:
+
+* comment ID
+* message
+* created time
+* author/from ID
+* author/from name
+
+Fetch a supported profile-picture field separately or through field expansion only if the current Graph API supports it. Failure to retrieve a profile picture must not fail the comment import.
+
+Follow every pagination page using `paging.next` or `paging.cursors.after` until no next page remains. Do not stop after the first 25 or 100 comments.
+
+Handle rate limits and temporary Meta errors with bounded retries and useful error reporting.
+
+4. Store comments safely and idempotently
+
+* Upsert comments using the Meta comment ID as a unique key.
+* Running sync repeatedly must never duplicate comments.
+* Aggregate participants using `platform + author_scoped_id`, never only the display name.
+* Update changed names and profile-picture URLs when Meta provides newer values.
+* Keep profile-picture failure separate from identity failure because Meta picture URLs can expire.
+* Continue using webhooks for real-time new comments after the historical import completes.
+
+5. Handle comments without an author identity honestly
+
+If Meta returns a comment but omits the `from`/author field:
+
+* Save it as an unresolved comment.
+* Do not invent a name.
+* Do not group unresolved comments by comment text or by identical display names.
+* Do not use scraping or browser automation to bypass Meta restrictions.
+* Do not silently hide the problem.
+
+Update `/api/giveaways/current` to return statistics such as:
+
+* `totalComments`
+* `commentsWithIdentity`
+* `commentsWithoutIdentity`
+* `participantsCount`
+* `pagesFetched`
+* `importStatus`
+* `lastImportError`
+
+Update the dashboard to display a warning such as:
+
+“125 comments were imported, but Meta did not provide author identity for 119 comments. Check Business Asset User Profile Access and App Review.”
+
+Unresolved comments must not be included in a per-person giveaway draw because they cannot be aggregated fairly.
+
+6. Comment counting rules
+
+Keep top-level Page comments as the default entry type. If replies are currently imported, add a clearly named setting for:
+
+* Top-level comments only
+* Top-level comments and replies
+
+Make sure the total count and participant count use the same selected rule.
+
+7. User interface
+
+Keep the existing Kurdish RTL design.
+
+Add:
+
+* Import progress/status
+* Number of comments fetched
+* Number with identity
+* Number without identity
+* Number of pagination pages processed
+* A clear Meta permission/App Review warning
+* A retry/resume historical import button
+
+Do not remove the existing live webhook functionality.
+
+8. Tests and final verification
+
+Add tests for:
+
+* More than 100 comments and multiple pagination pages
+* Duplicate sync calls
+* Comments with author identity
+* Comments without author identity
+* Expired/missing profile pictures
+* Temporary Meta API errors
+* Webhook and historical-import deduplication
+* Two users with the same display name but different IDs
+
+Test against the currently selected post and verify whether all approximately 125 comments are imported.
+
+At the end, give me a complete report containing:
+
+1. Root cause
+2. Files changed
+3. Database changes
+4. Permissions currently granted
+5. Permissions/features still requiring Meta App Review
+6. Number of historical comments fetched
+7. Number with author identity
+8. Number without author identity
+9. Whether all pagination pages completed
+10. Any manual steps I must complete in Meta Developer Dashboard
+
+Do not claim the issue is fixed if Meta still omits the author field. Clearly distinguish a code bug from a missing Meta permission or Advanced Access feature.

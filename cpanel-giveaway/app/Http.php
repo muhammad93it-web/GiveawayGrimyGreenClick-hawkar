@@ -13,6 +13,10 @@ final class Http
             if ($path === '/api/meta/status' && $method === 'GET') {
                 App::json(Meta::status());
             }
+            if ($path === '/api/meta/permissions' && $method === 'GET') {
+                $user = Auth::requireUser();
+                App::json(Meta::permissions($user, Giveaway::current($user)));
+            }
             if ($path === '/api/meta/login' && $method === 'GET') {
                 Meta::login();
             }
@@ -84,6 +88,9 @@ final class Http
         if (!is_string($signature) || !App::safeEqual($expected, $signature)) {
             App::json(['error' => 'واژۆی Meta نادروستە.'], 401);
         }
+        App::db()->exec(
+            'UPDATE giveaways SET sync_requested=1 WHERE status="running"'
+        );
         // Meta receives a fast acknowledgement. The cPanel cron pulls comments
         // with the same lock-protected code, so no webhook request blocks on paging.
         App::json(['ok' => true]);

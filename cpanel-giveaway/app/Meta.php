@@ -14,6 +14,8 @@ final class MetaApiException extends AppException
 
 final class Graph
 {
+    private const MAX_ATTEMPTS = 3;
+
     private static function base(): string
     {
         return 'https://graph.facebook.com/' . rawurlencode((string) App::config('meta.graph_version'));
@@ -24,35 +26,36 @@ final class Graph
         if (!function_exists('curl_init')) {
             throw new MetaApiException('لەسەر هۆستەکە curl چالاک نییە.', 503);
         }
-        $curl = curl_init($url);
         $headers = $token !== '' ? ['Authorization: Bearer ' . $token] : [];
-        curl_setopt_array($curl, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 15,
-            CURLOPT_CONNECTTIMEOUT => 10,
-            CURLOPT_HTTPHEADER => $headers,
-        ]);
         if ($post !== null) {
-            curl_setopt($curl, CURLOPT_POST, true);
-            curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($post, '', '&', PHP_QUERY_RFC3986));
             $headers[] = 'Content-Type: application/x-www-form-urlencoded';
-            curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
         }
-        $body = curl_exec($curl);
-        $code = (int) curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
-        $error = curl_error($curl);
-        curl_close($curl);
-        if (!is_string($body)) {
-            throw new MetaApiException('پەیوەندی بە Meta سەرکەوتوو نەبوو.', 502);
-        }
-        $data = json_decode($body, true);
-        if (!is_array($data)) {
-            throw new MetaApiException('وەڵامی Meta نادروست بوو.', 502);
-        }
-        if ($code < 200 || $code >= 300 || isset($data['error'])) {
-            $graphCode = (int) ($data['error']['code'] ?? 0);
-            $graphType = (string) ($data['error']['type'] ?? '');
-            $auth = in_array($graphCode, [102, 190], true) || $graphType === 'OAuthException';
+        $lastError = '';
+        for ($attempt = 1; $attempt <= self::MAX_ATTEMPTS; $attempt++) {
+            $curl = curl_init($url);
+            curl_setopt_array($curl, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 15,
+                CURLOPT_CONNECTTIMEOUT => 10,
+                CURLOPT_HTTPHEADER => $headers,
+            ]);
+            if ($post !== null) {
+                curl_setopt($curl, CURLOPT_POST, true);
+                curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($post, '', '&', PHP_QUERY_RFC3986));
+            }
+            $body = curl_exec($curl);
+            $code = (int) curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
+            $error = curl_error($curl);
+            curl_close($curl);
+            $lastError = $error;
+            $data = is_string($body) ? json_decode($body, true) : null;
+            if (is_array($data) && $code >= 200 && $code < 300 && !isset($data['error'])) {
+                return $data;
+            }
+            $graphCode = is_array($data) ? (int) ($data['error']['code'] ?? 0) : 0;
+            $graphType = is_array($data) ? (string) ($data['error']['type'] ?? '') : '';
+            $auth = in_array($graphCode, [102, 190], true)
+                || ($graphType === 'OAuthException' && $graphCode === 0);
             $permission = in_array($graphCode, [10, 200], true) || $graphType === 'GraphMethodException';
             if ($auth) {
                 throw new MetaApiException('مۆڵەتی Meta بەسەرچووە یان پچڕاوە؛ تکایە دووبارە پەیوەستی بکەرەوە.', 401, true);
@@ -60,9 +63,19 @@ final class Graph
             if ($permission) {
                 throw new MetaApiException('Meta مۆڵەتی پێویستی نەداوە؛ تکایە دووبارە پەیوەستی بکەرەوە.', 502, true);
             }
-            throw new MetaApiException($error !== '' ? 'پەیوەندی بە Meta سەرکەوتوو نەبوو.' : 'Meta هەڵەیەکی گەڕاندەوە.', 502);
+            $temporary = $code === 429
+                || $code >= 500
+                || in_array($graphCode, [1, 2, 4, 17, 341, 613], true)
+                || !is_array($data);
+            if (!$temporary || $attempt === self::MAX_ATTEMPTS) {
+                if (!is_array($data)) {
+                    throw new MetaApiException($lastError !== '' ? 'پەیوەندی بە Meta سەرکەوتوو نەبوو.' : 'وەڵامی Meta نادروست بوو.', 502);
+                }
+                throw new MetaApiException('Meta هەڵەیەکی کاتی گەڕاندەوە؛ دووبارە هەوڵ بدەرەوە.', 502);
+            }
+            usleep(150000 * $attempt);
         }
-        return $data;
+        throw new MetaApiException('پەیوەندی بە Meta سەرکەوتوو نەبوو.', 502);
     }
 
     public static function get(string $path, string $token, array $query = []): array
@@ -139,6 +152,80 @@ final class Meta
             'tokenStatus' => $connection['token_status'] ?? 'unknown',
             'tokenExpiresAt' => App::iso($connection['token_expires_at'] ?? null),
             'tokenCheckedAt' => App::iso($connection['token_checked_at'] ?? null),
+        ];
+    }
+
+    /**
+     * Return permission states only; never return or log a token.
+     */
+    public static function permissions(string $userId, ?array $giveaway = null): array
+    {
+        $connection = self::connection($userId);
+        if (!$connection) {
+            throw new AppException('چوونەژوورەوە پێویستە.', 401);
+        }
+        $requested = array_values(array_filter(array_map('trim', explode(',', self::SCOPES))));
+        $granted = [];
+        $declined = [];
+        $expired = [];
+        try {
+            $token = App::decrypt($connection['encrypted_long_lived_token']);
+            $response = Graph::get('/me/permissions', $token, ['limit' => 100]);
+            foreach (($response['data'] ?? []) as $permission) {
+                if (!is_array($permission)) {
+                    continue;
+                }
+                $name = self::nonEmptyString($permission['permission'] ?? null);
+                $status = self::nonEmptyString($permission['status'] ?? null);
+                if ($name === null) {
+                    continue;
+                }
+                if ($status === 'granted') {
+                    $granted[] = $name;
+                } elseif ($status === 'expired') {
+                    $expired[] = $name;
+                } else {
+                    $declined[] = $name;
+                }
+            }
+        } catch (MetaApiException $error) {
+            throw $error;
+        } catch (Throwable) {
+            throw new AppException('مۆڵەتەکانی Meta لە ئێستادا پشکنین نەکران.', 502);
+        }
+        $historicalSample = null;
+        if ($giveaway && ($giveaway['post_platform'] ?? '') === 'facebook') {
+            $pageToken = self::assetToken($connection, (string) $giveaway['asset_id']);
+            $page = Graph::get('/' . rawurlencode((string) $giveaway['post_id']) . '/comments', $pageToken, [
+                'fields' => 'id,message,created_time,from{id,name}',
+                'limit' => 1,
+                'filter' => 'stream',
+            ]);
+            $item = is_array($page['data'][0] ?? null) ? $page['data'][0] : null;
+            $from = $item !== null && is_array($item['from'] ?? null) ? $item['from'] : null;
+            $historicalSample = [
+                'commentReturned' => $item !== null,
+                'idPresent' => $item !== null && self::nonEmptyString($item['id'] ?? null) !== null,
+                'messageFieldPresent' => $item !== null && array_key_exists('message', $item),
+                'createdTimePresent' => $item !== null && self::nonEmptyString($item['created_time'] ?? null) !== null,
+                'fromPresent' => $from !== null,
+                'fromIdPresent' => $from !== null && self::nonEmptyString($from['id'] ?? null) !== null,
+                'fromNamePresent' => $from !== null && self::nonEmptyString($from['name'] ?? null) !== null,
+                'nextPagePresent' => self::nonEmptyString($page['paging']['next'] ?? null) !== null,
+                'rawValuesIncluded' => false,
+            ];
+        }
+        return [
+            'requested' => $requested,
+            'granted' => array_values(array_unique($granted)),
+            'declined' => array_values(array_unique($declined)),
+            'expired' => array_values(array_unique($expired)),
+            'pageCommentAccess' => in_array('pages_read_engagement', $granted, true)
+                && in_array('pages_read_user_content', $granted, true) ? 'granted' : 'incomplete',
+            'businessAssetUserProfileAccess' => 'not_verifiable_by_permissions_endpoint',
+            'tokenTypeForComments' => 'page_access_token',
+            'tokenIncluded' => false,
+            'historicalCommentSample' => $historicalSample,
         ];
     }
 
@@ -401,18 +488,26 @@ final class Meta
     {
         $token = self::assetToken($connection, $giveaway['asset_id']);
         $isInstagram = $giveaway['post_platform'] === 'instagram';
+        $includeReplies = !array_key_exists('include_replies', $giveaway)
+            || (int) $giveaway['include_replies'] === 1;
         $fields = $isInstagram
             ? 'id,text,timestamp,username,from{id,username},replies.limit(100){id,text,timestamp,username,from{id,username}}'
-            : 'id,message,created_time,from{id,name,picture},parent{id},comment_count,comments.limit(100){id,message,created_time,from{id,name,picture},parent{id}}';
+            : 'id,message,created_time,from{id,name},parent{id},comment_count'
+                . ($includeReplies ? ',comments.limit(100){id,message,created_time,from{id,name},parent{id}}' : '');
         $path = '/' . rawurlencode($giveaway['post_id']) . '/comments';
         $query = ['fields' => $fields, 'limit' => 100];
         if (!$isInstagram) {
-            $query['filter'] = 'stream';
+            $query['filter'] = $includeReplies ? 'stream' : 'toplevel';
         }
         if ($after !== null && $after !== '') {
             $query['after'] = $after;
         }
-        return self::normalizeCommentPage(Graph::get($path, $token, $query), $isInstagram);
+        return self::normalizeCommentPage(
+            Graph::get($path, $token, $query),
+            $isInstagram,
+            $includeReplies,
+            !$includeReplies
+        );
     }
 
     public static function replyPage(
@@ -425,7 +520,7 @@ final class Meta
         $isInstagram = $giveaway['post_platform'] === 'instagram';
         $fields = $isInstagram
             ? 'id,text,timestamp,username,from{id,username}'
-            : 'id,message,created_time,from{id,name,picture},parent{id}';
+            : 'id,message,created_time,from{id,name},parent{id}';
         $path = '/' . rawurlencode($parentCommentId) . ($isInstagram ? '/replies' : '/comments');
         $query = ['fields' => $fields, 'limit' => 100];
         if (!$isInstagram) {
@@ -453,7 +548,8 @@ final class Meta
     public static function normalizeCommentPage(
         array $page,
         bool $isInstagram,
-        bool $includeEmbeddedReplies = true
+        bool $includeEmbeddedReplies = true,
+        bool $topLevelOnly = false
     ): array {
         $comments = [];
         $replyEdge = $isInstagram ? 'replies' : 'comments';
@@ -466,6 +562,9 @@ final class Meta
                 continue;
             }
             $isReply = $comment['parentCommentId'] !== null;
+            if ($topLevelOnly && $isReply) {
+                continue;
+            }
             $comment['isReply'] = $isReply;
             $comment['repliesComplete'] = true;
             $comment['replyAfter'] = null;
