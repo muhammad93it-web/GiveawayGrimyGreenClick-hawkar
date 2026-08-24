@@ -434,3 +434,17 @@ mtime_ms = 1787580174643
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/39e35db9-3b7f-4d8e-b631-e752febb11db/d0d706d9-89a1-40bf-b05f-6eddbb9f3acc"
 storage_version_token = "1787580188769652"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "8udTtL3qxrb--EbvdALs2"
+uri = "file://.agents/outputs/gyadarmany-ranya-php-mysql-cpanel-v1.4.2.zip"
+type = "unspecified"
+title = "وەشانی ١.٤.٢ — چاکسازیی پیشاندانی مۆڵەتەکان"
+description = "ئەنجامی مۆڵەتەکان دێڕبەدێڕ پیشان دەدرێت و چیتر لە کارتەکە دەرناچێت. config/config.php و هیچ نهێنییەک لە زیپەکەدا نییە."
+logical_id = "0efeeeea-2312-4a69-89b8-65031527f8e7"
+content_hash = "sha256:9ba00f0604b399c8da345e14d108e0c559518d82bc43ab0363fd2913bf430b88"
+size = 179017
+mtime_ms = 1787580719298
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:214901a7-8344-4a84-9d02-11bd9ab4798a/0efeeeea-2312-4a69-89b8-65031527f8e7/ccf7db98-64a4-4fd6-b70c-1ae92c59e6f9"
+storage_version_token = "1787580730364373"
+content_type = "application/octet-stream"

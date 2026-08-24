@@ -11,6 +11,7 @@ function auditExpect(bool $condition, string $message): void
 $meta = file_get_contents(__DIR__ . '/../app/Meta.php');
 $giveaway = file_get_contents(__DIR__ . '/../app/Giveaway.php');
 $http = file_get_contents(__DIR__ . '/../app/Http.php');
+$view = file_get_contents(__DIR__ . '/../app/View.php');
 $commentImport = file_get_contents(__DIR__ . '/../app/CommentImport.php');
 $cron = file_get_contents(__DIR__ . '/../cron/sync.php');
 $schema = file_get_contents(__DIR__ . '/../database/schema.sql');
@@ -73,6 +74,8 @@ auditExpect(
 auditExpect(str_contains($cron, 'g.sync_requested = 1'), 'Cron should restart a completed snapshot only after a signed webhook request.');
 auditExpect(str_contains($dashboard, 'include-replies'), 'The admin counting-rule selector must exist.');
 auditExpect(str_contains($dashboard, 'check-permissions'), 'The admin permission diagnostic button must exist.');
+auditExpect(str_contains($dashboard, "items.join('\\n• ')"), 'Permission diagnostics must render one scope per line.');
+auditExpect(str_contains($view, 'white-space:pre-wrap'), 'Permission diagnostics must wrap inside the admin card.');
 auditExpect(!str_contains($live, 'Business Asset User Profile Access'), 'Permission warnings must never appear on the public live screen.');
 auditExpect(!str_contains($live, 'commentsWithoutIdentity'), 'Identity diagnostics must never appear on the public live screen.');
 
