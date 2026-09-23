@@ -441,6 +441,69 @@ final class Meta
         throw new AppException('پەیج یان هەژمارە هەڵبژێردراوەکە ڕێگەپێنەدراوە.', 403);
     }
 
+    /** Check a single Page Reel without changing or importing the current giveaway. */
+    public static function diagnoseReel(string $userId, string $url): array
+    {
+        if (!preg_match('~^https://(?:www\.)?facebook\.com/reel/([1-9][0-9]{0,29})/?$~D', trim($url), $match)) {
+            throw new AppException('لینکی Reel ـی Facebook نادروستە.', 400);
+        }
+        $videoId = $match[1];
+        $pageId = (string) App::config('meta.allowed_page_id');
+        if ($pageId === '') {
+            throw new AppException('پەیجی ڕێگەپێدراو ڕێکنەخراوە.', 503);
+        }
+        $page = self::asset($userId, $pageId);
+        if (($page['platform'] ?? '') !== 'facebook') {
+            throw new AppException('تەنها Reel ـی پەیجی Facebook دەتوانرێت پشکنین بکرێت.', 403);
+        }
+        $connection = self::connection($userId);
+        if (!$connection) {
+            throw new AppException('چوونەژوورەوە پێویستە.', 401);
+        }
+        $token = self::assetToken($connection, $pageId);
+        // A URL ID is not proof that this video belongs to the allowed Page.
+        // Fail closed if Meta does not return a matching video creator.
+        $video = Graph::get('/' . $videoId, $token, ['fields' => 'id,from{id}']);
+        $owner = is_array($video['from'] ?? null) ? $video['from'] : [];
+        if ((string) ($video['id'] ?? '') !== $videoId || (string) ($owner['id'] ?? '') !== $pageId) {
+            throw new AppException('Meta خاوەنداریی ئەم Reel ـە بۆ پەیجە ڕێگەپێدراوەکە پشتڕاست نەکردەوە.', 403);
+        }
+
+        $result = Graph::get('/' . $videoId . '/comments', $token, [
+            'fields' => 'id,message,created_time,from{id,name}',
+            'limit' => 100,
+        ]);
+        $comments = is_array($result['data'] ?? null) ? $result['data'] : [];
+        $withId = 0;
+        $withName = 0;
+        $sampled = 0;
+        $names = [];
+        foreach ($comments as $comment) {
+            if (!is_array($comment)) {
+                continue;
+            }
+            $sampled++;
+            $from = is_array($comment['from'] ?? null) ? $comment['from'] : [];
+            $id = self::nonEmptyString($from['id'] ?? null);
+            $name = self::nonEmptyString($from['name'] ?? null);
+            $withId += (int) ($id !== null);
+            $withName += (int) ($name !== null);
+            if ($name !== null && count($names) < 5 && !in_array($name, $names, true)) {
+                $names[] = $name;
+            }
+        }
+        return [
+            'pageId' => $pageId,
+            'pageName' => $page['name'] ?? $pageId,
+            'reelId' => $videoId,
+            'sampledComments' => $sampled,
+            'commentsWithAuthorId' => $withId,
+            'commentsWithAuthorName' => $withName,
+            'sampleNames' => $names,
+            'hasMore' => self::nonEmptyString($result['paging']['next'] ?? null) !== null,
+        ];
+    }
+
     public static function posts(string $userId, string $assetId): array
     {
         $asset = self::asset($userId, $assetId);

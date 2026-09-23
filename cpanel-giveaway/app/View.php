@@ -28,15 +28,18 @@ final class View
             };
         }
         $safe = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
+        $versionFile = dirname(__DIR__) . '/VERSION';
+        $assetVersion = is_readable($versionFile) ? trim((string) file_get_contents($versionFile)) : '1';
+        $assetQuery = '?v=' . rawurlencode($assetVersion);
         echo '<!doctype html><html lang="' . $language . '" dir="' . $direction . '"><head><meta charset="utf-8">';
         echo '<meta name="viewport" content="width=device-width,initial-scale=1">';
         echo self::$english
             ? '<meta name="description" content="Ranya Natural Herbs giveaway comment ranking">'
             : '<meta name="description" content="سیستەمی خەڵاتی کۆمێنتی گیادەرمانی سروشتی ڕانیە">';
-        echo '<title>' . $safe . '</title><link rel="stylesheet" href="/assets/app.css"></head><body>';
+        echo '<title>' . $safe . '</title><link rel="stylesheet" href="/assets/app.css' . $assetQuery . '"></head><body>';
         echo '<main class="shell">';
         if ($script !== '') {
-            echo '<script defer src="/assets/' . $script . '"></script>';
+            echo '<script defer src="/assets/' . $script . $assetQuery . '"></script>';
         }
     }
 
@@ -59,7 +62,8 @@ final class View
             echo '<label>Giveaway title<input id="prize-title" maxlength="255" placeholder="Example: Autumn giveaway"></label>';
             echo '<label>Number of winners<input id="prize-count" type="number" min="1" max="50" value="3"></label><label>Count comments<select id="include-replies"><option value="1">Comments and replies</option><option value="0">Top-level comments only</option></select></label>';
             echo '<button id="save" class="button">Save</button><button id="change" class="button danger hidden">Change post and reset</button>';
-            echo '<hr><button id="refresh-token" class="button secondary">Renew Meta permissions</button><button id="check-permissions" class="button secondary">Check Meta permissions</button><button id="disconnect" class="link danger-text">Disconnect Meta</button><pre id="permissions-note" class="muted" style="max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word"></pre></article>';
+            echo '<hr><button id="refresh-token" class="button secondary">Renew Meta permissions</button><button id="check-permissions" class="button secondary">Check Meta permissions</button><button id="disconnect" class="link danger-text">Disconnect Meta</button><pre id="permissions-note" class="muted" style="max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word"></pre>';
+            echo '<hr><h2>Check a Facebook Reel</h2><p class="muted">Read a sample of comments from this Page Reel. This check does not change the selected giveaway post or ranking.</p><label>Reel URL<input id="reel-url" type="url" placeholder="https://www.facebook.com/reel/123456789"></label><button id="check-reel" class="button secondary">Check Reel comments</button><pre id="reel-note" class="muted" style="max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word"></pre></article>';
             echo '<article class="card controls"><h2>Giveaway controls</h2><p>Status: <strong id="status">Not set</strong></p><div class="actions"><button id="start" class="button">Start</button><button id="pause" class="button secondary">Pause</button><button id="complete" class="button warning">Finish</button><button id="sync" class="button secondary">Continue importing comments</button></div><p id="import-note" class="identity-note hidden"></p><p id="sync-note" class="muted"></p></article>';
             echo '<article class="card results"><div class="result-head"><h2>Participant ranking</h2><span id="totals" class="badge">0 comments</span></div><p id="review-context" class="muted"></p><p id="identity-note" class="identity-note hidden"></p><ol id="participants" class="ranking"></ol><h3>Recent Page comments</h3><p class="muted">Author name and photo appear when Meta returns them. This list shows comments with an available author ID.</p><ol id="recent-comments" class="ranking"></ol></article>';
             echo '</section>';
@@ -76,7 +80,8 @@ final class View
         echo '<label>ناونیشانی خەڵات<input id="prize-title" maxlength="255" placeholder="نموونە: خەڵاتی پایزە"></label>';
         echo '<label>ژمارەی براوەکان<input id="prize-count" type="number" min="1" max="50" value="3"></label><label>شێوازی ژماردن<select id="include-replies"><option value="1">کۆمێنتە سەرەکییەکان و وەڵامەکان</option><option value="0">تەنها کۆمێنتە سەرەکییەکان</option></select></label>';
         echo '<button id="save" class="button">پاشەکەوتکردن</button><button id="change" class="button danger hidden">گۆڕینی پۆست و دەستپێکردنەوە</button>';
-        echo '<hr><button id="refresh-token" class="button secondary">نوێکردنەوەی مۆڵەتەکانی Meta</button><button id="check-permissions" class="button secondary">پشکنینی مۆڵەتەکانی Meta</button><button id="disconnect" class="link danger-text">پچڕاندنی پەیوەندی Meta</button><pre id="permissions-note" class="muted" style="max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;direction:rtl;text-align:right"></pre></article>';
+        echo '<hr><button id="refresh-token" class="button secondary">نوێکردنەوەی مۆڵەتەکانی Meta</button><button id="check-permissions" class="button secondary">پشکنینی مۆڵەتەکانی Meta</button><button id="disconnect" class="link danger-text">پچڕاندنی پەیوەندی Meta</button><pre id="permissions-note" class="muted" style="max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;direction:rtl;text-align:right"></pre>';
+        echo '<hr><h2>پشکنینی Facebook Reel</h2><p class="muted">نموونەیەک لە کۆمێنتەکانی Reel ـی ئەم پەیجە دەخوێنێتەوە. پۆستی خەڵات و ڕیزبەندیی ئێستا ناگۆڕێت.</p><label>لینکی Reel<input id="reel-url" type="url" placeholder="https://www.facebook.com/reel/123456789"></label><button id="check-reel" class="button secondary">پشکنینی کۆمێنتەکانی Reel</button><pre id="reel-note" class="muted" style="max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;direction:rtl;text-align:right"></pre></article>';
         echo '<article class="card controls"><h2>کۆنتڕۆڵەکانی پەخش</h2><p>دۆخ: <strong id="status">دیارینەکراو</strong></p><div class="actions"><button id="start" class="button">دەستپێکردن</button><button id="pause" class="button secondary">وەستاندن</button><button id="complete" class="button warning">کۆتایی هێنان</button><button id="sync" class="button secondary">بەردەوامکردنی هێنانەوە</button></div><p id="import-note" class="identity-note hidden"></p><p id="sync-note" class="muted"></p></article>';
         echo '<article class="card results"><div class="result-head"><h2>ڕیزبەندیی بەشداربووان</h2><span id="totals" class="badge">٠ کۆمێنت</span></div><p id="review-context" class="muted"></p><p id="identity-note" class="identity-note hidden"></p><ol id="participants" class="ranking"></ol><h3>نوێترین کۆمێنتەکانی پەیج</h3><p class="muted">ناو و وێنە کاتێک Meta بیاندات پیشان دەدرێن. تەنها کۆمێنتی خاوەن ناسنامە لەم لیستەدایە.</p><ol id="recent-comments" class="ranking"></ol></article>';
         echo '</section>';

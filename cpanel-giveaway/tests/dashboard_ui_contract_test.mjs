@@ -31,7 +31,14 @@ class Element {
     this.children.push(child);
   }
 
-  addEventListener() {}
+  addEventListener(type, listener) {
+    this.listeners ??= {};
+    this.listeners[type] = listener;
+  }
+
+  async click() {
+    return this.listeners?.click?.();
+  }
 
   remove() {
     this.removed = true;
@@ -149,6 +156,18 @@ const apiResponse = url => {
       },
     };
   }
+  if (url === "/api/meta/reel-diagnostic?url=https%3A%2F%2Fwww.facebook.com%2Freel%2F1367904922112644") {
+    return {
+      pageId: "page-1",
+      pageName: "پەیجی تاقیکردنەوە",
+      reelId: "1367904922112644",
+      sampledComments: 2,
+      commentsWithAuthorId: 1,
+      commentsWithAuthorName: 1,
+      sampleNames: ["کۆمێنتنووسی ڕاستەقینە"],
+      hasMore: true,
+    };
+  }
   if (url.includes("/posts")) {
     return [{ id: "post-1", message: "پۆستی تاقیکردنەوە", createdAt: "2026-08-23T12:00:00+00:00" }];
   }
@@ -168,6 +187,7 @@ const apiResponse = url => {
 
 const createContext = (ids, url = "https://giveaway.example.com/", language = "ckb") => {
   const elements = Object.fromEntries(ids.map(id => [id, new Element("div", id)]));
+  const requests = [];
   const browserUrl = new URL(url);
   const location = {
     href: browserUrl.href,
@@ -198,12 +218,12 @@ const createContext = (ids, url = "https://giveaway.example.com/", language = "c
     setInterval: () => 1,
     clearInterval: () => {},
     setTimeout,
-    fetch: async url => ({
-      ok: true,
-      json: async () => structuredClone(apiResponse(url)),
-    }),
+    fetch: async (url, options) => {
+      requests.push({url, method: options?.method || "GET"});
+      return {ok: true, json: async () => structuredClone(apiResponse(url))};
+    },
   });
-  return { context, elements, location };
+  return { context, elements, location, requests };
 };
 
 const settle = async () => {
@@ -215,7 +235,7 @@ const dashboardIds = [
   "notice", "setup-card", "app-card", "callback", "admin-name", "asset", "post",
   "prize-title", "prize-count", "include-replies", "status", "totals", "participants",
   "review-context", "identity-note", "import-note", "recent-comments", "sync-note", "permissions-note", "save", "change",
-  "start", "pause", "complete", "sync", "disconnect", "refresh-token", "check-permissions",
+  "start", "pause", "complete", "sync", "disconnect", "refresh-token", "check-permissions", "reel-url", "reel-note", "check-reel",
 ];
 const dashboard = createContext(dashboardIds);
 vm.runInContext(
@@ -252,6 +272,14 @@ await settle();
 assert.match(reviewerDashboard.elements["review-context"].textContent, /Facebook Page: پەیجی تاقیکردنەوە \(page-1\)/);
 assert.match(reviewerDashboard.elements.totals.textContent, /5 comments · 1 participants/);
 assert.equal(reviewerDashboard.elements.participants.children[0].children[2].textContent, "بەشداربووی ناسنامەدار");
+reviewerDashboard.elements["reel-url"].value = "https://www.facebook.com/reel/1367904922112644";
+const beforeReelCheck = reviewerDashboard.requests.length;
+await reviewerDashboard.elements["check-reel"].click();
+assert.match(reviewerDashboard.elements["reel-note"].textContent, /Comments sampled: 2/);
+assert.match(reviewerDashboard.elements["reel-note"].textContent, /کۆمێنتنووسی ڕاستەقینە/);
+assert.match(reviewerDashboard.elements["reel-note"].textContent, /The giveaway is unchanged/);
+assert.deepEqual(reviewerDashboard.requests.slice(beforeReelCheck).map(r => r.method), ["GET"]);
+assert.equal(reviewerDashboard.elements["check-reel"].disabled, false);
 
 const liveIds = [
   "live-prize", "live-status", "live-totals", "podium",
