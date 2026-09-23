@@ -25,6 +25,14 @@ final class Http
                 }
                 App::json(Meta::diagnoseReel($user, $url));
             }
+            if ($path === '/api/meta/reel' && $method === 'GET') {
+                $user = Auth::requireUser();
+                $url = $_GET['url'] ?? '';
+                if (!is_string($url) || strlen($url) > 512) {
+                    throw new AppException('لینکی Reel ـی Facebook نادروستە.', 400);
+                }
+                App::json(Meta::reel($user, $url));
+            }
             if ($path === '/api/meta/login' && $method === 'GET') {
                 Meta::login();
             }

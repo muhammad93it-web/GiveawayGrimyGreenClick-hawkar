@@ -126,7 +126,7 @@ const giveawayFixture = {
   ],
 };
 
-const apiResponse = url => {
+const apiResponse = (url, options = {}) => {
   if (url === "/api/meta/status") {
     return {
       configured: true,
@@ -168,10 +168,23 @@ const apiResponse = url => {
       hasMore: true,
     };
   }
+  if (url === "/api/meta/reel?url=https%3A%2F%2Fwww.facebook.com%2Freel%2F1367904922112644") {
+    return {
+      id: "1367904922112644",
+      pageId: "page-1",
+      pageName: "پەیجی تاقیکردنەوە",
+      platform: "facebook_reel",
+      message: "Facebook Reel 1367904922112644",
+    };
+  }
   if (url.includes("/posts")) {
     return [{ id: "post-1", message: "پۆستی تاقیکردنەوە", createdAt: "2026-08-23T12:00:00+00:00" }];
   }
   if (url === "/api/giveaways/current") {
+    if (options.method === "PUT") {
+      const input = JSON.parse(options.body);
+      return {...giveawayFixture, status: "idle", postId: input.postId, postPlatform: "facebook_reel", postMessage: "Facebook Reel " + input.postId};
+    }
     return giveawayFixture;
   }
   if (url === "/api/giveaways/current/recent-comments") {
@@ -219,8 +232,8 @@ const createContext = (ids, url = "https://giveaway.example.com/", language = "c
     clearInterval: () => {},
     setTimeout,
     fetch: async (url, options) => {
-      requests.push({url, method: options?.method || "GET"});
-      return {ok: true, json: async () => structuredClone(apiResponse(url))};
+      requests.push({url, method: options?.method || "GET", body: options?.body});
+      return {ok: true, json: async () => structuredClone(apiResponse(url, options))};
     },
   });
   return { context, elements, location, requests };
@@ -235,7 +248,7 @@ const dashboardIds = [
   "notice", "setup-card", "app-card", "callback", "admin-name", "asset", "post",
   "prize-title", "prize-count", "include-replies", "status", "totals", "participants",
   "review-context", "identity-note", "import-note", "recent-comments", "sync-note", "permissions-note", "save", "change",
-  "start", "pause", "complete", "sync", "disconnect", "refresh-token", "check-permissions", "reel-url", "reel-note", "check-reel",
+  "start", "pause", "complete", "sync", "disconnect", "refresh-token", "check-permissions", "reel-url", "reel-note", "check-reel", "select-reel",
 ];
 const dashboard = createContext(dashboardIds);
 vm.runInContext(
@@ -280,6 +293,30 @@ assert.match(reviewerDashboard.elements["reel-note"].textContent, /کۆمێنت�
 assert.match(reviewerDashboard.elements["reel-note"].textContent, /The giveaway is unchanged/);
 assert.deepEqual(reviewerDashboard.requests.slice(beforeReelCheck).map(r => r.method), ["GET"]);
 assert.equal(reviewerDashboard.elements["check-reel"].disabled, false);
+const beforeReelSelection = reviewerDashboard.requests.length;
+await reviewerDashboard.elements["select-reel"].click();
+assert.equal(reviewerDashboard.elements.post.value, "1367904922112644");
+assert.match(reviewerDashboard.elements["reel-note"].textContent, /No data has changed yet/);
+assert.deepEqual(reviewerDashboard.requests.slice(beforeReelSelection).map(r => r.method), ["GET"]);
+assert.equal(giveawayFixture.postId, "post-1");
+await reviewerDashboard.elements.change.click();
+assert.equal(reviewerDashboard.elements.post.value, "1367904922112644");
+assert.equal(reviewerDashboard.requests.some(r => r.method === "PUT"), false);
+await reviewerDashboard.elements.save.click();
+const savedReel = reviewerDashboard.requests.find(r => r.method === "PUT");
+assert.equal(JSON.parse(savedReel.body).postId, "1367904922112644");
+assert.equal(JSON.parse(savedReel.body).reset, true);
+assert.equal(reviewerDashboard.elements.post.value, "1367904922112644");
+
+const activeReel = {...giveawayFixture, postId: "1367904922112644", postPlatform: "facebook_reel", postMessage: "Facebook Reel 1367904922112644"};
+giveawayFixture.postId = activeReel.postId;
+giveawayFixture.postPlatform = activeReel.postPlatform;
+giveawayFixture.postMessage = activeReel.postMessage;
+const reloadedReel = createContext(dashboardIds, "https://giveaway.example.com/", "en");
+vm.runInContext(fs.readFileSync(new URL("../public/assets/dashboard.js", import.meta.url), "utf8"), reloadedReel.context);
+await settle();
+assert.equal(reloadedReel.elements.post.value, "1367904922112644");
+assert.equal(reloadedReel.elements.post.children.some(option => option.value === "1367904922112644"), true);
 
 const liveIds = [
   "live-prize", "live-status", "live-totals", "podium",
