@@ -17,6 +17,22 @@ final class Http
                 $user = Auth::requireUser();
                 App::json(Meta::permissions($user, Giveaway::current($user)));
             }
+            if ($path === '/api/meta/reel-diagnostic' && $method === 'GET') {
+                $user = Auth::requireUser();
+                $url = $_GET['url'] ?? '';
+                if (!is_string($url) || strlen($url) > 512) {
+                    throw new AppException('لینکی Reel ـی Facebook نادروستە.', 400);
+                }
+                App::json(Meta::diagnoseReel($user, $url));
+            }
+            if ($path === '/api/meta/reel' && $method === 'GET') {
+                $user = Auth::requireUser();
+                $url = $_GET['url'] ?? '';
+                if (!is_string($url) || strlen($url) > 512) {
+                    throw new AppException('لینکی Reel ـی Facebook نادروستە.', 400);
+                }
+                App::json(Meta::reel($user, $url));
+            }
             if ($path === '/api/meta/login' && $method === 'GET') {
                 Meta::login();
             }
@@ -40,6 +56,9 @@ final class Http
             }
             if ($path === '/api/giveaways/current' && $method === 'GET') {
                 App::json(Giveaway::projection(Giveaway::current()));
+            }
+            if ($path === '/api/giveaways/current/recent-comments' && $method === 'GET') {
+                App::json(Giveaway::recentComments(Auth::requireUser()));
             }
             if ($path === '/api/giveaways/current' && $method === 'PUT') {
                 $user = Auth::requireUser();

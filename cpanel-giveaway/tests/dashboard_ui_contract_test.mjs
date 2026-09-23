@@ -31,7 +31,14 @@ class Element {
     this.children.push(child);
   }
 
-  addEventListener() {}
+  addEventListener(type, listener) {
+    this.listeners ??= {};
+    this.listeners[type] = listener;
+  }
+
+  async click() {
+    return this.listeners?.click?.();
+  }
 
   remove() {
     this.removed = true;
@@ -119,7 +126,7 @@ const giveawayFixture = {
   ],
 };
 
-const apiResponse = url => {
+const apiResponse = (url, options = {}) => {
   if (url === "/api/meta/status") {
     return {
       configured: true,
@@ -149,19 +156,65 @@ const apiResponse = url => {
       },
     };
   }
+  if (url === "/api/meta/reel-diagnostic?url=https%3A%2F%2Fwww.facebook.com%2Freel%2F1367904922112644") {
+    return {
+      pageId: "page-1",
+      pageName: "پەیجی تاقیکردنەوە",
+      reelId: "1367904922112644",
+      sampledComments: 2,
+      commentsWithAuthorId: 1,
+      commentsWithAuthorName: 1,
+      sampleNames: ["کۆمێنتنووسی ڕاستەقینە"],
+      hasMore: true,
+    };
+  }
+  if (url === "/api/meta/reel?url=https%3A%2F%2Fwww.facebook.com%2Freel%2F1367904922112644") {
+    return {
+      id: "1367904922112644",
+      pageId: "page-1",
+      pageName: "پەیجی تاقیکردنەوە",
+      platform: "facebook_reel",
+      message: "Facebook Reel 1367904922112644",
+    };
+  }
   if (url.includes("/posts")) {
     return [{ id: "post-1", message: "پۆستی تاقیکردنەوە", createdAt: "2026-08-23T12:00:00+00:00" }];
   }
   if (url === "/api/giveaways/current") {
+    if (options.method === "PUT") {
+      const input = JSON.parse(options.body);
+      return {...giveawayFixture, status: "idle", postId: input.postId, postPlatform: "facebook_reel", postMessage: "Facebook Reel " + input.postId};
+    }
     return giveawayFixture;
+  }
+  if (url === "/api/giveaways/current/recent-comments") {
+    return [{
+      displayName: "بەشداربووی ناسنامەدار",
+      profilePictureUrl: null,
+      message: "A real comment returned by the Page",
+      commentedAt: "2026-08-23T12:00:00+00:00",
+    }];
   }
   throw new Error(`Unexpected fixture request: ${url}`);
 };
 
-const createContext = ids => {
+const createContext = (ids, url = "https://giveaway.example.com/", language = "ckb") => {
   const elements = Object.fromEntries(ids.map(id => [id, new Element("div", id)]));
+  const requests = [];
+  const browserUrl = new URL(url);
+  const location = {
+    href: browserUrl.href,
+    search: browserUrl.search,
+  };
+  const history = {
+    replaceState: (_state, _title, nextUrl) => {
+      location.href = new URL(nextUrl, location.href).href;
+      location.search = new URL(location.href).search;
+    },
+  };
   const document = {
     hidden: false,
+    documentElement: { lang: language },
     getElementById: id => elements[id] ?? (elements[id] = new Element("div", id)),
     createElement: tagName => new Element(tagName),
   };
@@ -170,17 +223,20 @@ const createContext = ids => {
     Date,
     document,
     Option: OptionElement,
+    URL,
+    URLSearchParams,
+    history,
     confirm: () => true,
-    location: { href: "" },
+    location,
     setInterval: () => 1,
     clearInterval: () => {},
     setTimeout,
-    fetch: async url => ({
-      ok: true,
-      json: async () => structuredClone(apiResponse(url)),
-    }),
+    fetch: async (url, options) => {
+      requests.push({url, method: options?.method || "GET", body: options?.body});
+      return {ok: true, json: async () => structuredClone(apiResponse(url, options))};
+    },
   });
-  return { context, elements };
+  return { context, elements, location, requests };
 };
 
 const settle = async () => {
@@ -191,8 +247,8 @@ const settle = async () => {
 const dashboardIds = [
   "notice", "setup-card", "app-card", "callback", "admin-name", "asset", "post",
   "prize-title", "prize-count", "include-replies", "status", "totals", "participants",
-  "identity-note", "import-note", "sync-note", "permissions-note", "save", "change",
-  "start", "pause", "complete", "sync", "disconnect", "refresh-token", "check-permissions",
+  "review-context", "identity-note", "import-note", "recent-comments", "sync-note", "permissions-note", "save", "change",
+  "start", "pause", "complete", "sync", "disconnect", "refresh-token", "check-permissions", "reel-url", "reel-note", "check-reel", "select-reel",
 ];
 const dashboard = createContext(dashboardIds);
 vm.runInContext(
@@ -209,6 +265,58 @@ assert.match(dashboard.elements["import-note"].textContent, /2 پەڕە پشکن
 assert.equal(dashboard.elements.participants.children.length, 1);
 assert.equal(dashboard.elements.participants.children[0].children[3].textContent, 2);
 assert.equal(dashboard.elements.participants.children[0].children[2].textContent, "بەشداربووی ناسنامەدار");
+assert.equal(dashboard.elements["recent-comments"].children[0].children[1].children[1].textContent, "A real comment returned by the Page");
+
+const expiredLogin = createContext(dashboardIds, "https://giveaway.example.com/?meta=expired_state");
+vm.runInContext(
+  fs.readFileSync(new URL("../public/assets/dashboard.js", import.meta.url), "utf8"),
+  expiredLogin.context,
+);
+await settle();
+assert.match(expiredLogin.elements.notice.textContent, /کاتی پشتڕاستکردنەوە تەواو بوو/);
+assert.equal(expiredLogin.location.search, "");
+
+const reviewerDashboard = createContext(dashboardIds, "https://giveaway.example.com/", "en");
+vm.runInContext(
+  fs.readFileSync(new URL("../public/assets/dashboard.js", import.meta.url), "utf8"),
+  reviewerDashboard.context,
+);
+await settle();
+assert.match(reviewerDashboard.elements["review-context"].textContent, /Facebook Page: پەیجی تاقیکردنەوە \(page-1\)/);
+assert.match(reviewerDashboard.elements.totals.textContent, /5 comments · 1 participants/);
+assert.equal(reviewerDashboard.elements.participants.children[0].children[2].textContent, "بەشداربووی ناسنامەدار");
+reviewerDashboard.elements["reel-url"].value = "https://www.facebook.com/reel/1367904922112644";
+const beforeReelCheck = reviewerDashboard.requests.length;
+await reviewerDashboard.elements["check-reel"].click();
+assert.match(reviewerDashboard.elements["reel-note"].textContent, /Comments sampled: 2/);
+assert.match(reviewerDashboard.elements["reel-note"].textContent, /کۆمێنتنووسی ڕاستەقینە/);
+assert.match(reviewerDashboard.elements["reel-note"].textContent, /The giveaway is unchanged/);
+assert.deepEqual(reviewerDashboard.requests.slice(beforeReelCheck).map(r => r.method), ["GET"]);
+assert.equal(reviewerDashboard.elements["check-reel"].disabled, false);
+const beforeReelSelection = reviewerDashboard.requests.length;
+await reviewerDashboard.elements["select-reel"].click();
+assert.equal(reviewerDashboard.elements.post.value, "1367904922112644");
+assert.match(reviewerDashboard.elements["reel-note"].textContent, /No data has changed yet/);
+assert.deepEqual(reviewerDashboard.requests.slice(beforeReelSelection).map(r => r.method), ["GET"]);
+assert.equal(giveawayFixture.postId, "post-1");
+await reviewerDashboard.elements.change.click();
+assert.equal(reviewerDashboard.elements.post.value, "1367904922112644");
+assert.equal(reviewerDashboard.requests.some(r => r.method === "PUT"), false);
+await reviewerDashboard.elements.save.click();
+const savedReel = reviewerDashboard.requests.find(r => r.method === "PUT");
+assert.equal(JSON.parse(savedReel.body).postId, "1367904922112644");
+assert.equal(JSON.parse(savedReel.body).reset, true);
+assert.equal(reviewerDashboard.elements.post.value, "1367904922112644");
+
+const activeReel = {...giveawayFixture, postId: "1367904922112644", postPlatform: "facebook_reel", postMessage: "Facebook Reel 1367904922112644"};
+giveawayFixture.postId = activeReel.postId;
+giveawayFixture.postPlatform = activeReel.postPlatform;
+giveawayFixture.postMessage = activeReel.postMessage;
+const reloadedReel = createContext(dashboardIds, "https://giveaway.example.com/", "en");
+vm.runInContext(fs.readFileSync(new URL("../public/assets/dashboard.js", import.meta.url), "utf8"), reloadedReel.context);
+await settle();
+assert.equal(reloadedReel.elements.post.value, "1367904922112644");
+assert.equal(reloadedReel.elements.post.children.some(option => option.value === "1367904922112644"), true);
 
 const liveIds = [
   "live-prize", "live-status", "live-totals", "podium",

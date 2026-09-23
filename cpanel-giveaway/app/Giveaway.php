@@ -19,6 +19,28 @@ final class Giveaway
         return $statement->fetch() ?: null;
     }
 
+    /** Show actual Page comments to the connected admin for review and moderation of the giveaway. */
+    public static function recentComments(string $userId): array
+    {
+        $giveaway = self::current($userId);
+        if (!$giveaway) {
+            return [];
+        }
+        $statement = App::db()->prepare(
+            'SELECT display_name, profile_picture_url, comment_text, commented_at
+             FROM imported_comments
+             WHERE giveaway_id = ? AND external_user_id NOT LIKE "anonymous:%"
+             ORDER BY commented_at DESC LIMIT 10'
+        );
+        $statement->execute([$giveaway['id']]);
+        return array_map(static fn(array $row): array => [
+            'displayName' => $row['display_name'],
+            'profilePictureUrl' => $row['profile_picture_url'] ?: null,
+            'message' => $row['comment_text'],
+            'commentedAt' => App::iso($row['commented_at']),
+        ], $statement->fetchAll());
+    }
+
     public static function projection(?array $giveaway): array
     {
         if (!$giveaway) {

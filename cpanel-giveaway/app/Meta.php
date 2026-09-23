@@ -108,7 +108,8 @@ final class Graph
 
 final class Meta
 {
-    private const SCOPES = 'pages_show_list,pages_read_engagement,pages_read_user_content,instagram_basic,instagram_manage_comments';
+    // The current App Review covers Facebook Page permissions only.
+    private const SCOPES = 'pages_show_list,pages_read_engagement,pages_read_user_content';
     private const ANONYMOUS_DISPLAY_NAME = 'بێ ناو';
 
     public static function configured(): bool
@@ -194,13 +195,16 @@ final class Meta
             throw new AppException('مۆڵەتەکانی Meta لە ئێستادا پشکنین نەکران.', 502);
         }
         $historicalSample = null;
-        if ($giveaway && ($giveaway['post_platform'] ?? '') === 'facebook') {
+        if ($giveaway && in_array(($giveaway['post_platform'] ?? ''), ['facebook', 'facebook_reel'], true)) {
             $pageToken = self::assetToken($connection, (string) $giveaway['asset_id']);
-            $page = Graph::get('/' . rawurlencode((string) $giveaway['post_id']) . '/comments', $pageToken, [
+            $query = [
                 'fields' => 'id,message,created_time,from{id,name}',
                 'limit' => 1,
-                'filter' => 'stream',
-            ]);
+            ];
+            if (($giveaway['post_platform'] ?? '') === 'facebook') {
+                $query['filter'] = 'stream';
+            }
+            $page = Graph::get('/' . rawurlencode((string) $giveaway['post_id']) . '/comments', $pageToken, $query);
             $item = is_array($page['data'][0] ?? null) ? $page['data'][0] : null;
             $from = $item !== null && is_array($item['from'] ?? null) ? $item['from'] : null;
             $historicalSample = [
@@ -271,6 +275,7 @@ final class Meta
             'scope' => self::SCOPES,
             'state' => $state,
             'response_type' => 'code',
+            // Ask again for permissions previously declined; this does not force password re-entry.
             'auth_type' => 'rerequest',
             'return_scopes' => 'true',
         ], '', '&', PHP_QUERY_RFC3986);
@@ -280,16 +285,22 @@ final class Meta
 
     public static function callback(): never
     {
-        $fail = static function (): never {
-            App::redirect('/?meta=error');
+        $fail = static function (string $reason): never {
+            App::redirect('/?meta=' . rawurlencode($reason));
         };
-        if (!self::configured() || isset($_GET['error'])) {
-            $fail();
+        if (!self::configured()) {
+            $fail('configuration');
+        }
+        if (isset($_GET['error'])) {
+            $fail('cancelled');
         }
         $code = $_GET['code'] ?? '';
         $state = $_GET['state'] ?? '';
-        if (!is_string($code) || !is_string($state) || $code === '' || !Auth::consumeOAuthState($state)) {
-            $fail();
+        if (!is_string($code) || $code === '' || !is_string($state) || $state === '') {
+            $fail('invalid_response');
+        }
+        if (!Auth::consumeOAuthState($state)) {
+            $fail('expired_state');
         }
         try {
             $short = Graph::postOAuth([
@@ -299,7 +310,7 @@ final class Meta
                 'code' => $code,
             ]);
             if (empty($short['access_token'])) {
-                $fail();
+                $fail('token_exchange');
             }
             $grant = Graph::postOAuth([
                 'grant_type' => 'fb_exchange_token',
@@ -311,7 +322,7 @@ final class Meta
             $expiresSeconds = (int) ($grant['expires_in'] ?? $short['expires_in'] ?? 0);
             $me = Graph::get('/me', $longToken, ['fields' => 'id,name']);
             $accountPage = Graph::get('/me/accounts', $longToken, [
-                'fields' => 'id,name,access_token,picture,instagram_business_account',
+                'fields' => 'id,name,access_token,picture',
                 'limit' => 100,
             ]);
             $allowed = null;
@@ -345,24 +356,6 @@ final class Meta
                 'id' => (string) $allowed['id'],
                 'token' => App::encrypt((string) $allowed['access_token']),
             ]];
-            $igId = $allowed['instagram_business_account']['id'] ?? null;
-            if (is_string($igId) && $igId !== '') {
-                try {
-                    $ig = Graph::get('/' . rawurlencode($igId), (string) $allowed['access_token'], [
-                        'fields' => 'id,name,username,profile_picture_url',
-                    ]);
-                    $assets[] = [
-                        'id' => $igId,
-                        'platform' => 'instagram',
-                        'name' => (string) ($ig['name'] ?? $ig['username'] ?? $igId),
-                        'pictureUrl' => $ig['profile_picture_url'] ?? null,
-                    ];
-                    $tokenEntries[] = ['id' => $igId, 'token' => App::encrypt((string) $allowed['access_token'])];
-                } catch (Throwable) {
-                    // Facebook remains usable when an optional linked Instagram lookup fails.
-                }
-            }
-
             $pdo = App::db();
             $pdo->beginTransaction();
             $existing = $pdo->query('SELECT meta_user_id FROM meta_connections WHERE singleton_key = "default" FOR UPDATE')->fetch();
@@ -402,11 +395,21 @@ final class Meta
             $pdo->commit();
             Auth::create($userId);
             App::redirect('/?meta=connected');
+        } catch (MetaApiException $error) {
+            if (App::db()->inTransaction()) {
+                App::db()->rollBack();
+            }
+            $fail($error->authorizationFailure ? 'authorization' : 'meta_api');
+        } catch (AppException $error) {
+            if (App::db()->inTransaction()) {
+                App::db()->rollBack();
+            }
+            $fail($error->status === 403 ? 'page_access' : 'server');
         } catch (Throwable $error) {
             if (App::db()->inTransaction()) {
                 App::db()->rollBack();
             }
-            $fail();
+            $fail('server');
         }
     }
 
@@ -439,6 +442,112 @@ final class Meta
             }
         }
         throw new AppException('پەیج یان هەژمارە هەڵبژێردراوەکە ڕێگەپێنەدراوە.', 403);
+    }
+
+    /** Resolve a Page Reel for selection without writing the giveaway. */
+    public static function reel(string $userId, string $url): array
+    {
+        $videoId = self::reelIdFromUrl($url);
+        $pageId = (string) App::config('meta.allowed_page_id');
+        if ($pageId === '' || $pageId === 'FACEBOOK_PAGE_ID') {
+            throw new AppException('پەیجی ڕێگەپێدراو ڕێکنەخراوە.', 503);
+        }
+        return self::verifiedPageReel($userId, $pageId, $videoId);
+    }
+
+    public static function reelIdFromUrl(string $url): string
+    {
+        if (!preg_match('~^https://(?:www\.)?facebook\.com/reel/([1-9][0-9]{0,29})/?$~D', trim($url), $match)) {
+            throw new AppException('لینکی Reel ـی Facebook نادروستە.', 400);
+        }
+        return $match[1];
+    }
+
+    public static function videoBelongsToPage(array $video, string $videoId, string $pageId): bool
+    {
+        $owner = is_array($video['from'] ?? null) ? $video['from'] : [];
+        return (string) ($video['id'] ?? '') === $videoId
+            && (string) ($owner['id'] ?? '') === $pageId;
+    }
+
+    /** The Page token alone does not prove ownership of an arbitrary public video. */
+    private static function verifiedPageReel(string $userId, string $pageId, string $videoId): array
+    {
+        if ($pageId !== (string) App::config('meta.allowed_page_id') || !preg_match('/^[1-9][0-9]{0,29}$/D', $videoId)) {
+            throw new AppException('پەیج یان Reel ـی ڕێگەپێنەدراوە.', 403);
+        }
+        $page = self::asset($userId, $pageId);
+        if (($page['platform'] ?? '') !== 'facebook') {
+            throw new AppException('تەنها Reel ـی پەیجی Facebook دەتوانرێت پشکنین بکرێت.', 403);
+        }
+        $connection = self::connection($userId);
+        if (!$connection) {
+            throw new AppException('چوونەژوورەوە پێویستە.', 401);
+        }
+        $token = self::assetToken($connection, $pageId);
+        // A URL ID is not proof that this video belongs to the allowed Page.
+        // Fail closed if Meta does not return a matching video creator.
+        $video = Graph::get('/' . $videoId, $token, ['fields' => 'id,from{id}']);
+        if (!self::videoBelongsToPage($video, $videoId, $pageId)) {
+            throw new AppException('Meta خاوەنداریی ئەم Reel ـە بۆ پەیجە ڕێگەپێدراوەکە پشتڕاست نەکردەوە.', 403);
+        }
+
+        return [
+            'id' => $videoId,
+            'pageId' => $pageId,
+            'pageName' => $page['name'] ?? $pageId,
+            'platform' => 'facebook_reel',
+            'message' => 'Facebook Reel ' . $videoId,
+            'createdAt' => '',
+            'permalinkUrl' => 'https://www.facebook.com/reel/' . $videoId,
+            'thumbnailUrl' => null,
+        ];
+    }
+
+    /** Check a single Page Reel without changing or importing the current giveaway. */
+    public static function diagnoseReel(string $userId, string $url): array
+    {
+        $reel = self::reel($userId, $url);
+        $videoId = $reel['id'];
+        $pageId = $reel['pageId'];
+        $connection = self::connection($userId);
+        $token = self::assetToken($connection, $pageId);
+
+        // Exercise the same Graph projection used by the actual Reel import,
+        // including parent, reply count, and the embedded replies edge.
+        $result = Graph::get('/' . $videoId . '/comments', $token, self::commentQuery([
+            'post_platform' => 'facebook_reel',
+            'include_replies' => 1,
+        ]));
+        $comments = is_array($result['data'] ?? null) ? $result['data'] : [];
+        $withId = 0;
+        $withName = 0;
+        $sampled = 0;
+        $names = [];
+        foreach ($comments as $comment) {
+            if (!is_array($comment)) {
+                continue;
+            }
+            $sampled++;
+            $from = is_array($comment['from'] ?? null) ? $comment['from'] : [];
+            $id = self::nonEmptyString($from['id'] ?? null);
+            $name = self::nonEmptyString($from['name'] ?? null);
+            $withId += (int) ($id !== null);
+            $withName += (int) ($name !== null);
+            if ($name !== null && count($names) < 5 && !in_array($name, $names, true)) {
+                $names[] = $name;
+            }
+        }
+        return [
+            'pageId' => $pageId,
+            'pageName' => $reel['pageName'],
+            'reelId' => $videoId,
+            'sampledComments' => $sampled,
+            'commentsWithAuthorId' => $withId,
+            'commentsWithAuthorName' => $withName,
+            'sampleNames' => $names,
+            'hasMore' => self::nonEmptyString($result['paging']['next'] ?? null) !== null,
+        ];
     }
 
     public static function posts(string $userId, string $assetId): array
@@ -481,6 +590,10 @@ final class Meta
                 return $post;
             }
         }
+        if ($assetId === (string) App::config('meta.allowed_page_id')
+            && preg_match('/^[1-9][0-9]{0,29}$/D', $postId)) {
+            return self::verifiedPageReel($userId, $assetId, $postId);
+        }
         throw new AppException('پۆستە هەڵبژێردراوەکە لەسەر ئەم پەیجە یان هەژمارە نییە.', 403);
     }
 
@@ -490,24 +603,32 @@ final class Meta
         $isInstagram = $giveaway['post_platform'] === 'instagram';
         $includeReplies = !array_key_exists('include_replies', $giveaway)
             || (int) $giveaway['include_replies'] === 1;
+        $path = '/' . rawurlencode($giveaway['post_id']) . '/comments';
+        return self::normalizeCommentPage(
+            Graph::get($path, $token, self::commentQuery($giveaway, $after)),
+            $isInstagram,
+            $includeReplies,
+            !$includeReplies
+        );
+    }
+
+    private static function commentQuery(array $giveaway, ?string $after = null): array
+    {
+        $isInstagram = $giveaway['post_platform'] === 'instagram';
+        $includeReplies = !array_key_exists('include_replies', $giveaway)
+            || (int) $giveaway['include_replies'] === 1;
         $fields = $isInstagram
             ? 'id,text,timestamp,username,from{id,username},replies.limit(100){id,text,timestamp,username,from{id,username}}'
             : 'id,message,created_time,from{id,name},parent{id},comment_count'
                 . ($includeReplies ? ',comments.limit(100){id,message,created_time,from{id,name},parent{id}}' : '');
-        $path = '/' . rawurlencode($giveaway['post_id']) . '/comments';
         $query = ['fields' => $fields, 'limit' => 100];
-        if (!$isInstagram) {
+        if (!$isInstagram && $giveaway['post_platform'] !== 'facebook_reel') {
             $query['filter'] = $includeReplies ? 'stream' : 'toplevel';
         }
         if ($after !== null && $after !== '') {
             $query['after'] = $after;
         }
-        return self::normalizeCommentPage(
-            Graph::get($path, $token, $query),
-            $isInstagram,
-            $includeReplies,
-            !$includeReplies
-        );
+        return $query;
     }
 
     public static function replyPage(
