@@ -108,7 +108,8 @@ final class Graph
 
 final class Meta
 {
-    private const SCOPES = 'pages_show_list,pages_read_engagement,pages_read_user_content,instagram_basic,instagram_manage_comments';
+    // The current App Review covers Facebook Page permissions only.
+    private const SCOPES = 'pages_show_list,pages_read_engagement,pages_read_user_content';
     private const ANONYMOUS_DISPLAY_NAME = 'بێ ناو';
 
     public static function configured(): bool
@@ -271,6 +272,7 @@ final class Meta
             'scope' => self::SCOPES,
             'state' => $state,
             'response_type' => 'code',
+            // Ask again for permissions previously declined; this does not force password re-entry.
             'auth_type' => 'rerequest',
             'return_scopes' => 'true',
         ], '', '&', PHP_QUERY_RFC3986);
@@ -280,16 +282,22 @@ final class Meta
 
     public static function callback(): never
     {
-        $fail = static function (): never {
-            App::redirect('/?meta=error');
+        $fail = static function (string $reason): never {
+            App::redirect('/?meta=' . rawurlencode($reason));
         };
-        if (!self::configured() || isset($_GET['error'])) {
-            $fail();
+        if (!self::configured()) {
+            $fail('configuration');
+        }
+        if (isset($_GET['error'])) {
+            $fail('cancelled');
         }
         $code = $_GET['code'] ?? '';
         $state = $_GET['state'] ?? '';
-        if (!is_string($code) || !is_string($state) || $code === '' || !Auth::consumeOAuthState($state)) {
-            $fail();
+        if (!is_string($code) || $code === '' || !is_string($state) || $state === '') {
+            $fail('invalid_response');
+        }
+        if (!Auth::consumeOAuthState($state)) {
+            $fail('expired_state');
         }
         try {
             $short = Graph::postOAuth([
@@ -299,7 +307,7 @@ final class Meta
                 'code' => $code,
             ]);
             if (empty($short['access_token'])) {
-                $fail();
+                $fail('token_exchange');
             }
             $grant = Graph::postOAuth([
                 'grant_type' => 'fb_exchange_token',
@@ -311,7 +319,7 @@ final class Meta
             $expiresSeconds = (int) ($grant['expires_in'] ?? $short['expires_in'] ?? 0);
             $me = Graph::get('/me', $longToken, ['fields' => 'id,name']);
             $accountPage = Graph::get('/me/accounts', $longToken, [
-                'fields' => 'id,name,access_token,picture,instagram_business_account',
+                'fields' => 'id,name,access_token,picture',
                 'limit' => 100,
             ]);
             $allowed = null;
@@ -345,24 +353,6 @@ final class Meta
                 'id' => (string) $allowed['id'],
                 'token' => App::encrypt((string) $allowed['access_token']),
             ]];
-            $igId = $allowed['instagram_business_account']['id'] ?? null;
-            if (is_string($igId) && $igId !== '') {
-                try {
-                    $ig = Graph::get('/' . rawurlencode($igId), (string) $allowed['access_token'], [
-                        'fields' => 'id,name,username,profile_picture_url',
-                    ]);
-                    $assets[] = [
-                        'id' => $igId,
-                        'platform' => 'instagram',
-                        'name' => (string) ($ig['name'] ?? $ig['username'] ?? $igId),
-                        'pictureUrl' => $ig['profile_picture_url'] ?? null,
-                    ];
-                    $tokenEntries[] = ['id' => $igId, 'token' => App::encrypt((string) $allowed['access_token'])];
-                } catch (Throwable) {
-                    // Facebook remains usable when an optional linked Instagram lookup fails.
-                }
-            }
-
             $pdo = App::db();
             $pdo->beginTransaction();
             $existing = $pdo->query('SELECT meta_user_id FROM meta_connections WHERE singleton_key = "default" FOR UPDATE')->fetch();
@@ -402,11 +392,21 @@ final class Meta
             $pdo->commit();
             Auth::create($userId);
             App::redirect('/?meta=connected');
+        } catch (MetaApiException $error) {
+            if (App::db()->inTransaction()) {
+                App::db()->rollBack();
+            }
+            $fail($error->authorizationFailure ? 'authorization' : 'meta_api');
+        } catch (AppException $error) {
+            if (App::db()->inTransaction()) {
+                App::db()->rollBack();
+            }
+            $fail($error->status === 403 ? 'page_access' : 'server');
         } catch (Throwable $error) {
             if (App::db()->inTransaction()) {
                 App::db()->rollBack();
             }
-            $fail();
+            $fail('server');
         }
     }
 

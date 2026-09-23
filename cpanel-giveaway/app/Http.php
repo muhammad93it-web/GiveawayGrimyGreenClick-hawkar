@@ -41,6 +41,9 @@ final class Http
             if ($path === '/api/giveaways/current' && $method === 'GET') {
                 App::json(Giveaway::projection(Giveaway::current()));
             }
+            if ($path === '/api/giveaways/current/recent-comments' && $method === 'GET') {
+                App::json(Giveaway::recentComments(Auth::requireUser()));
+            }
             if ($path === '/api/giveaways/current' && $method === 'PUT') {
                 $user = Auth::requireUser();
                 Auth::requireCsrf();

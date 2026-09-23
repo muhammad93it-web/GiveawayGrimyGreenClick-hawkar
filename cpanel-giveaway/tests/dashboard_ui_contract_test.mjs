@@ -155,13 +155,33 @@ const apiResponse = url => {
   if (url === "/api/giveaways/current") {
     return giveawayFixture;
   }
+  if (url === "/api/giveaways/current/recent-comments") {
+    return [{
+      displayName: "بەشداربووی ناسنامەدار",
+      profilePictureUrl: null,
+      message: "A real comment returned by the Page",
+      commentedAt: "2026-08-23T12:00:00+00:00",
+    }];
+  }
   throw new Error(`Unexpected fixture request: ${url}`);
 };
 
-const createContext = ids => {
+const createContext = (ids, url = "https://giveaway.example.com/", language = "ckb") => {
   const elements = Object.fromEntries(ids.map(id => [id, new Element("div", id)]));
+  const browserUrl = new URL(url);
+  const location = {
+    href: browserUrl.href,
+    search: browserUrl.search,
+  };
+  const history = {
+    replaceState: (_state, _title, nextUrl) => {
+      location.href = new URL(nextUrl, location.href).href;
+      location.search = new URL(location.href).search;
+    },
+  };
   const document = {
     hidden: false,
+    documentElement: { lang: language },
     getElementById: id => elements[id] ?? (elements[id] = new Element("div", id)),
     createElement: tagName => new Element(tagName),
   };
@@ -170,8 +190,11 @@ const createContext = ids => {
     Date,
     document,
     Option: OptionElement,
+    URL,
+    URLSearchParams,
+    history,
     confirm: () => true,
-    location: { href: "" },
+    location,
     setInterval: () => 1,
     clearInterval: () => {},
     setTimeout,
@@ -180,7 +203,7 @@ const createContext = ids => {
       json: async () => structuredClone(apiResponse(url)),
     }),
   });
-  return { context, elements };
+  return { context, elements, location };
 };
 
 const settle = async () => {
@@ -191,7 +214,7 @@ const settle = async () => {
 const dashboardIds = [
   "notice", "setup-card", "app-card", "callback", "admin-name", "asset", "post",
   "prize-title", "prize-count", "include-replies", "status", "totals", "participants",
-  "identity-note", "import-note", "sync-note", "permissions-note", "save", "change",
+  "review-context", "identity-note", "import-note", "recent-comments", "sync-note", "permissions-note", "save", "change",
   "start", "pause", "complete", "sync", "disconnect", "refresh-token", "check-permissions",
 ];
 const dashboard = createContext(dashboardIds);
@@ -209,6 +232,26 @@ assert.match(dashboard.elements["import-note"].textContent, /2 پەڕە پشکن
 assert.equal(dashboard.elements.participants.children.length, 1);
 assert.equal(dashboard.elements.participants.children[0].children[3].textContent, 2);
 assert.equal(dashboard.elements.participants.children[0].children[2].textContent, "بەشداربووی ناسنامەدار");
+assert.equal(dashboard.elements["recent-comments"].children[0].children[1].children[1].textContent, "A real comment returned by the Page");
+
+const expiredLogin = createContext(dashboardIds, "https://giveaway.example.com/?meta=expired_state");
+vm.runInContext(
+  fs.readFileSync(new URL("../public/assets/dashboard.js", import.meta.url), "utf8"),
+  expiredLogin.context,
+);
+await settle();
+assert.match(expiredLogin.elements.notice.textContent, /کاتی پشتڕاستکردنەوە تەواو بوو/);
+assert.equal(expiredLogin.location.search, "");
+
+const reviewerDashboard = createContext(dashboardIds, "https://giveaway.example.com/", "en");
+vm.runInContext(
+  fs.readFileSync(new URL("../public/assets/dashboard.js", import.meta.url), "utf8"),
+  reviewerDashboard.context,
+);
+await settle();
+assert.match(reviewerDashboard.elements["review-context"].textContent, /Facebook Page: پەیجی تاقیکردنەوە \(page-1\)/);
+assert.match(reviewerDashboard.elements.totals.textContent, /5 comments · 1 participants/);
+assert.equal(reviewerDashboard.elements.participants.children[0].children[2].textContent, "بەشداربووی ناسنامەدار");
 
 const liveIds = [
   "live-prize", "live-status", "live-totals", "podium",

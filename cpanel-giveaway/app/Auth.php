@@ -6,6 +6,8 @@ final class Auth
     private const SESSION_COOKIE = 'sid';
     private const CSRF_COOKIE = 'csrf';
     private const OAUTH_STATE_COOKIE = 'meta_oauth_state';
+    // Account verification can take longer than the usual short OAuth redirect.
+    private const OAUTH_STATE_LIFETIME = 30 * 60;
     private static ?string $userId = null;
     private static bool $loaded = false;
 
@@ -108,9 +110,9 @@ final class Auth
         }
         $state = App::randomToken(32);
         App::db()->prepare(
-            'INSERT INTO oauth_states (state_hash, expires_at) VALUES (?, DATE_ADD(UTC_TIMESTAMP(), INTERVAL 10 MINUTE))'
+            'INSERT INTO oauth_states (state_hash, expires_at) VALUES (?, DATE_ADD(UTC_TIMESTAMP(), INTERVAL 30 MINUTE))'
         )->execute([hash('sha256', $state)]);
-        setcookie(self::OAUTH_STATE_COOKIE, $state, self::cookieOptions(time() + 600));
+        setcookie(self::OAUTH_STATE_COOKIE, $state, self::cookieOptions(time() + self::OAUTH_STATE_LIFETIME));
         return $state;
     }
 

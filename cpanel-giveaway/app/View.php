@@ -3,12 +3,36 @@ declare(strict_types=1);
 
 final class View
 {
+    private static bool $english = false;
+
     private static function header(string $title, string $script = ''): void
     {
+        $requestedLanguage = $_GET['lang'] ?? null;
+        if ($requestedLanguage === 'en' || $requestedLanguage === 'ckb') {
+            setcookie('ui_lang', $requestedLanguage, [
+                'expires' => time() + 365 * 86400,
+                'path' => '/',
+                'secure' => App::secureCookies(),
+                'samesite' => 'Lax',
+            ]);
+        }
+        self::$english = ($requestedLanguage === 'en')
+            || ($requestedLanguage !== 'ckb' && ($_COOKIE['ui_lang'] ?? '') === 'en');
+        $language = self::$english ? 'en' : 'ckb';
+        $direction = self::$english ? 'ltr' : 'rtl';
+        if (self::$english) {
+            $title = match ($script) {
+                'dashboard.js' => 'Giveaway dashboard — Ranya Natural Herbs',
+                'live.js' => 'Live giveaway results — Ranya Natural Herbs',
+                default => $title,
+            };
+        }
         $safe = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
-        echo '<!doctype html><html lang="ckb" dir="rtl"><head><meta charset="utf-8">';
+        echo '<!doctype html><html lang="' . $language . '" dir="' . $direction . '"><head><meta charset="utf-8">';
         echo '<meta name="viewport" content="width=device-width,initial-scale=1">';
-        echo '<meta name="description" content="سیستەمی خەڵاتی کۆمێنتی گیادەرمانی سروشتی ڕانیە">';
+        echo self::$english
+            ? '<meta name="description" content="Ranya Natural Herbs giveaway comment ranking">'
+            : '<meta name="description" content="سیستەمی خەڵاتی کۆمێنتی گیادەرمانی سروشتی ڕانیە">';
         echo '<title>' . $safe . '</title><link rel="stylesheet" href="/assets/app.css"></head><body>';
         echo '<main class="shell">';
         if ($script !== '') {
@@ -24,9 +48,27 @@ final class View
     public static function dashboard(): void
     {
         self::header('گیادەرمانی سروشتی ڕانیە — داشبۆرد', 'dashboard.js');
-        echo '<header class="topbar"><div class="brand"><img src="/assets/logo.png" alt="لۆگۆی گیادەرمانی سروشتی ڕانیە"><div><p class="eyebrow">گیادەرمانی سروشتی ڕانیە</p><h1>سەنتەری بەڕێوەبردنی خەڵات</h1></div></div><a class="button secondary" href="/live" target="_blank">کردنەوەی شاشەی ڕاستەوخۆ</a></header>';
+        if (self::$english) {
+            echo '<header class="topbar"><div class="brand"><img src="/assets/logo.png" alt="Ranya Natural Herbs logo"><div><p class="eyebrow">Ranya Natural Herbs</p><h1>Giveaway dashboard</h1></div></div><div class="actions"><a class="button secondary" href="/?lang=ckb">کوردی</a><a class="button secondary" href="/live" target="_blank">Open live results</a></div></header>';
+            echo '<div id="notice" class="notice hidden" role="status"></div>';
+            echo '<section id="setup-card" class="card hidden"><h2>Connect your Facebook Page</h2><p>Connect the Page you manage to select a post and count its comments.</p><a class="button" href="/api/meta/login">Connect Facebook</a><p id="callback" class="code"></p></section>';
+            echo '<section id="app-card" class="hidden grid">';
+            echo '<article class="card settings"><h2>Giveaway setup</h2><p id="admin-name" class="muted"></p>';
+            echo '<label>Facebook Page<select id="asset"><option value="">-- Select a Page --</option></select></label>';
+            echo '<label>Post<select id="post"><option value="">-- Select a Page first --</option></select></label>';
+            echo '<label>Giveaway title<input id="prize-title" maxlength="255" placeholder="Example: Autumn giveaway"></label>';
+            echo '<label>Number of winners<input id="prize-count" type="number" min="1" max="50" value="3"></label><label>Count comments<select id="include-replies"><option value="1">Comments and replies</option><option value="0">Top-level comments only</option></select></label>';
+            echo '<button id="save" class="button">Save</button><button id="change" class="button danger hidden">Change post and reset</button>';
+            echo '<hr><button id="refresh-token" class="button secondary">Renew Meta permissions</button><button id="check-permissions" class="button secondary">Check Meta permissions</button><button id="disconnect" class="link danger-text">Disconnect Meta</button><pre id="permissions-note" class="muted" style="max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word"></pre></article>';
+            echo '<article class="card controls"><h2>Giveaway controls</h2><p>Status: <strong id="status">Not set</strong></p><div class="actions"><button id="start" class="button">Start</button><button id="pause" class="button secondary">Pause</button><button id="complete" class="button warning">Finish</button><button id="sync" class="button secondary">Continue importing comments</button></div><p id="import-note" class="identity-note hidden"></p><p id="sync-note" class="muted"></p></article>';
+            echo '<article class="card results"><div class="result-head"><h2>Participant ranking</h2><span id="totals" class="badge">0 comments</span></div><p id="review-context" class="muted"></p><p id="identity-note" class="identity-note hidden"></p><ol id="participants" class="ranking"></ol><h3>Recent Page comments</h3><p class="muted">Author name and photo appear when Meta returns them. This list shows comments with an available author ID.</p><ol id="recent-comments" class="ranking"></ol></article>';
+            echo '</section>';
+            self::footer();
+            return;
+        }
+        echo '<header class="topbar"><div class="brand"><img src="/assets/logo.png" alt="لۆگۆی گیادەرمانی سروشتی ڕانیە"><div><p class="eyebrow">گیادەرمانی سروشتی ڕانیە</p><h1>سەنتەری بەڕێوەبردنی خەڵات</h1></div></div><div class="actions"><a class="button secondary" href="/?lang=en">English</a><a class="button secondary" href="/live" target="_blank">کردنەوەی شاشەی ڕاستەوخۆ</a></div></header>';
         echo '<div id="notice" class="notice hidden" role="status"></div>';
-        echo '<section id="setup-card" class="card hidden"><h2>بەستنەوەی هەژمار</h2><p>بۆ هەڵبژاردنی پۆست و ژماردنی کۆمێنتەکان، هەژماری Meta ـەکەت ببەستەوە.</p><a class="button" href="/api/meta/login">بەستنەوەی فەیسبووک / ئینستاگرام</a><p id="callback" class="code"></p></section>';
+        echo '<section id="setup-card" class="card hidden"><h2>بەستنەوەی هەژمار</h2><p>بۆ هەڵبژاردنی پۆست و ژماردنی کۆمێنتەکان، هەژماری Meta ـەکەت ببەستەوە.</p><a class="button" href="/api/meta/login">بەستنەوەی فەیسبووک</a><p id="callback" class="code"></p></section>';
         echo '<section id="app-card" class="hidden grid">';
         echo '<article class="card settings"><h2>ڕێکخستنی خەڵات</h2><p id="admin-name" class="muted"></p>';
         echo '<label>پەیج یان هەژمار<select id="asset"><option value="">-- هەڵبژێرە --</option></select></label>';
@@ -36,7 +78,7 @@ final class View
         echo '<button id="save" class="button">پاشەکەوتکردن</button><button id="change" class="button danger hidden">گۆڕینی پۆست و دەستپێکردنەوە</button>';
         echo '<hr><button id="refresh-token" class="button secondary">نوێکردنەوەی مۆڵەتەکانی Meta</button><button id="check-permissions" class="button secondary">پشکنینی مۆڵەتەکانی Meta</button><button id="disconnect" class="link danger-text">پچڕاندنی پەیوەندی Meta</button><pre id="permissions-note" class="muted" style="max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;direction:rtl;text-align:right"></pre></article>';
         echo '<article class="card controls"><h2>کۆنتڕۆڵەکانی پەخش</h2><p>دۆخ: <strong id="status">دیارینەکراو</strong></p><div class="actions"><button id="start" class="button">دەستپێکردن</button><button id="pause" class="button secondary">وەستاندن</button><button id="complete" class="button warning">کۆتایی هێنان</button><button id="sync" class="button secondary">بەردەوامکردنی هێنانەوە</button></div><p id="import-note" class="identity-note hidden"></p><p id="sync-note" class="muted"></p></article>';
-        echo '<article class="card results"><div class="result-head"><h2>ڕیزبەندیی بەشداربووان</h2><span id="totals" class="badge">٠ کۆمێنت</span></div><p id="identity-note" class="identity-note hidden"></p><ol id="participants" class="ranking"></ol></article>';
+        echo '<article class="card results"><div class="result-head"><h2>ڕیزبەندیی بەشداربووان</h2><span id="totals" class="badge">٠ کۆمێنت</span></div><p id="review-context" class="muted"></p><p id="identity-note" class="identity-note hidden"></p><ol id="participants" class="ranking"></ol><h3>نوێترین کۆمێنتەکانی پەیج</h3><p class="muted">ناو و وێنە کاتێک Meta بیاندات پیشان دەدرێن. تەنها کۆمێنتی خاوەن ناسنامە لەم لیستەدایە.</p><ol id="recent-comments" class="ranking"></ol></article>';
         echo '</section>';
         self::footer();
     }
@@ -44,6 +86,11 @@ final class View
     public static function live(): void
     {
         self::header('شاشەی ڕاستەوخۆ — گیادەرمانی سروشتی ڕانیە', 'live.js');
+        if (self::$english) {
+            echo '<section id="live" class="live"><header class="live-head"><div class="brand"><img src="/assets/logo.png" alt="Ranya Natural Herbs logo"><div><p class="eyebrow">Ranya Natural Herbs</p><h1 id="live-prize">Loading...</h1></div></div><div id="live-status" class="badge">Waiting</div></header><div id="live-totals" class="live-total"></div><div id="podium" class="podium"></div><section class="live-list"><h2>Participants</h2><ol id="live-participants" class="ranking"></ol></section></section>';
+            self::footer();
+            return;
+        }
         echo '<section id="live" class="live"><header class="live-head"><div class="brand"><img src="/assets/logo.png" alt="لۆگۆی گیادەرمانی سروشتی ڕانیە"><div><p class="eyebrow">گیادەرمانی سروشتی ڕانیە</p><h1 id="live-prize">خەریکی بارکردن...</h1></div></div><div id="live-status" class="badge">چاوەڕێبە</div></header><div id="live-totals" class="live-total"></div><div id="podium" class="podium"></div><section class="live-list"><h2>ڕکابەرەکان</h2><ol id="live-participants" class="ranking"></ol></section></section>';
         self::footer();
     }
